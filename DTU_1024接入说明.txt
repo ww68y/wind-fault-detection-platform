@@ -1,0 +1,53 @@
+DTU 1024 切片数据接入说明
+
+当前状态
+1. 已下载 DTU 标注仓库到：
+   datasets/raw/dtu_annotations
+
+2. 已新增一键转换脚本：
+   scripts/prepare_dtu_1024.py
+
+3. 已确认 1024 标注文件存在：
+   datasets/raw/dtu_annotations/annotations/train1024-s.json
+   datasets/raw/dtu_annotations/annotations/val1024-s.json
+   datasets/raw/dtu_annotations/annotations/test1024-s.json
+
+4. 已确认 DTU 1024 类别为 5 类：
+   LE;ER
+   SF;PO
+   VG;MT
+   LR;DA
+   LE;CR
+
+为什么现在还不能直接训练
+DTU GitHub 仓库只包含标注文件，不包含原始图片。
+图片需要从 Mendeley 数据集下载后放入本地目录。
+
+请把 DTU 图片放到：
+datasets/raw/dtu/images
+
+放好后运行：
+.venv\Scripts\python.exe scripts\prepare_dtu_1024.py --images datasets\raw\dtu\images --output datasets\dtu_1024_yolo
+
+转换成功后会生成：
+datasets/dtu_1024_yolo/data.yaml
+datasets/dtu_1024_yolo/images/train
+datasets/dtu_1024_yolo/images/val
+datasets/dtu_1024_yolo/images/test
+datasets/dtu_1024_yolo/labels/train
+datasets/dtu_1024_yolo/labels/val
+datasets/dtu_1024_yolo/labels/test
+
+建议训练方式
+先单独训练 DTU 5 类模型，不要直接混进当前 crack/hole/spalling/corrosion 四分类模型。
+原因是 DTU 的类别定义和当前数据集类别定义不一样，直接混合会让类别语义混乱。
+
+示例训练命令：
+.venv\Scripts\python.exe scripts\train_yolo.py --data datasets\dtu_1024_yolo\data.yaml --model yolov8n.pt --epochs 80 --imgsz 1024 --batch 2 --device 0 --name dtu_1024_5class
+
+后续融合思路
+1. 先训练 DTU 1024 五分类模型，观察细小裂纹和长条形缺陷表现。
+2. 再决定是否把 DTU 类别映射到当前四分类：
+   LE;CR 可考虑映射到 crack。
+   其他类别需要人工确认后再映射。
+3. 如果只是提高“有没有缺陷”的检出能力，也可以训练一个单类 defect 模型，作为巡检初筛模型。

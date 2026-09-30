@@ -1,0 +1,10 @@
+path: .
+train: images/train
+val: images/val
+test: images/test_clean
+
+names:
+  0: crack
+  1: hole
+  2: spalling
+  3: corrosion

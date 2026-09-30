@@ -1,0 +1,25 @@
+project:
+  name: wind_fault
+  output_dir: runs/wind_fault
+
+dataset:
+  root: datasets/wind_blade_defect
+  class_names:
+    - defect
+
+train:
+  model: yolov8n.pt
+  imgsz: 640
+  epochs: 80
+  batch: 16
+  name: baseline
+
+predict:
+  conf: 0.3
+  name: predict
+
+slice:
+  tile_size: 1024
+  overlap: 0.2
+  min_visibility: 0.25
+

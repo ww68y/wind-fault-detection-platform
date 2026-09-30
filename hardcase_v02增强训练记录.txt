@@ -1,0 +1,113 @@
+hardcase v0.2 增强训练记录
+生成日期：2026-06-04
+
+一、本次目标
+
+本次训练目标不是重新做一个新模型，而是在当前 4 类风机叶片缺陷主模型基础上，加入漏检困难样本进行微调，尝试降低漏检率。
+
+当前主模型：
+
+runs\detect\runs\wind_fault\gpu_640_b4_80e\weights\best.pt
+
+增强训练后的目标模型：
+
+runs\detect\runs\wind_fault\hardcase\v02_hardcase_640_b4_40e_20260604_190625\weights\best.pt
+
+
+二、增强数据集
+
+新建增强数据集目录：
+
+datasets\wind_blade_defect_hardcase_v02
+
+构建脚本：
+
+scripts\prepare_hardcase_dataset.py
+
+构建命令：
+
+.\.venv\Scripts\python.exe scripts\prepare_hardcase_dataset.py --overwrite
+
+数据集构成：
+
+原训练集图片：2665 张
+原训练集标签：2665 个
+原验证集图片：571 张
+原验证集标签：571 个
+新增 hardcase 漏检样本：29 张
+新增 hardcase 标签：29 个
+clean test 图片：543 张
+clean test 标签：543 个
+
+说明：
+
+hard_cases\missed_samples 中的 29 张图片全部来自原 test 集。
+
+为了避免“把测试图片加入训练后又用同一批图片测试”导致指标虚高，本次构建增强数据集时：
+
+1. 将 29 张漏检样本复制到 train 中，文件名前缀为 hardcase_missed_；
+2. 从 test 中排除这 29 张，生成 test_clean；
+3. 后续评估建议使用 test_clean。
+
+
+三、训练配置
+
+训练方式：
+
+从当前 80 轮主模型继续微调。
+
+训练命令：
+
+.\.venv\Scripts\python.exe -u scripts\train_yolo.py ^
+  --data datasets\wind_blade_defect_hardcase_v02\data.yaml ^
+  --model runs\detect\runs\wind_fault\gpu_640_b4_80e\weights\best.pt ^
+  --epochs 40 ^
+  --imgsz 640 ^
+  --batch 4 ^
+  --project runs\wind_fault\hardcase ^
+  --name v02_hardcase_640_b4_40e_20260604_190625 ^
+  --device 0
+
+训练轮数：40
+图像尺寸：640
+batch：4
+设备：GPU device 0
+
+
+四、训练日志
+
+标准输出日志：
+
+runs\wind_fault\logs\v02_hardcase_640_b4_40e_20260604_190625.out.log
+
+错误日志：
+
+runs\wind_fault\logs\v02_hardcase_640_b4_40e_20260604_190625.err.log
+
+查看训练进度命令：
+
+Get-Content .\runs\wind_fault\logs\v02_hardcase_640_b4_40e_20260604_190625.out.log -Tail 40 -Wait
+
+
+五、训练完成后需要做的评估
+
+训练完成后，不要只看训练指标，需要做对比评估：
+
+1. v0.1 主模型在 test_clean 上的结果；
+2. v0.2 hardcase 模型在 test_clean 上的结果；
+3. v0.1 主模型在 29 张 missed_samples 上的结果；
+4. v0.2 hardcase 模型在 29 张 missed_samples 上的结果。
+
+重点观察：
+
+1. 原漏检样本是否被检出；
+2. crack 和 corrosion 类别是否改善；
+3. clean test 上 mAP 是否下降；
+4. 是否引入新的误检。
+
+
+六、当前结论
+
+本次 v0.2 hardcase 训练已经启动。
+
+如果训练完成后效果提升明显，可以考虑将 v0.2 模型作为新的候选主模型；如果 clean test 指标下降明显，则需要继续调整 hardcase 样本比例、训练轮数或重新标注策略。

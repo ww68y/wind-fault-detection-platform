@@ -1,0 +1,18 @@
+Roboflow YOLOv8 wind sample preparation summary
+
+dataset_dir: C:\Wind Turbine blades.v2-1111.yolov8
+output_dir: C:\Users\yys\Desktop\风机\wind-fault-detection-platform\hard_cases
+
+total_images: 1162
+negative_samples: 236
+new_corrosion_samples: 212
+new_small_defect_samples: 713
+skipped_images: 33
+
+class_counts:
+- 0: Crack: 208
+- 1: Erosion: 227
+- 2: Good: 1061
+- 3: MechanicalDamage: 60
+- 4: Paintoff: 195
+- 5: Scratch: 411

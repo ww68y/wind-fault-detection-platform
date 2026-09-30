@@ -1,0 +1,134 @@
+{
+  "image_count": 3,
+  "total_defects": 3,
+  "items": [
+    {
+      "image": "C:\\Users\\yys\\Desktop\\风机\\wind-fault-detection-platform\\runs\\api\\5ead9abc9f034abfb97561098b32c11d\\uploads\\001_hole_1000.jpg",
+      "defect_count": 1,
+      "detections": [
+        {
+          "class_id": 1,
+          "class_name": "hole",
+          "class_name_cn": "孔洞",
+          "confidence": 0.930809,
+          "xyxy": [
+            240.3,
+            97.31,
+            278.46,
+            135.51
+          ]
+        }
+      ],
+      "uploaded_filename": "hole_1000.jpg",
+      "saved_filename": "001_hole_1000.jpg",
+      "class_summary": {
+        "hole": 1
+      },
+      "class_summary_cn": {
+        "孔洞": 1
+      },
+      "original_image_url": "/artifacts/api/5ead9abc9f034abfb97561098b32c11d/uploads/001_hole_1000.jpg",
+      "result_image_url": "/artifacts/api/5ead9abc9f034abfb97561098b32c11d/rendered/001_hole_1000_pred.jpg"
+    },
+    {
+      "image": "C:\\Users\\yys\\Desktop\\风机\\wind-fault-detection-platform\\runs\\api\\5ead9abc9f034abfb97561098b32c11d\\uploads\\002_crack_1000.jpg",
+      "defect_count": 1,
+      "detections": [
+        {
+          "class_id": 0,
+          "class_name": "crack",
+          "class_name_cn": "裂纹",
+          "confidence": 0.865841,
+          "xyxy": [
+            39.61,
+            205.45,
+            481.49,
+            502.88
+          ]
+        }
+      ],
+      "uploaded_filename": "crack_1000.jpg",
+      "saved_filename": "002_crack_1000.jpg",
+      "class_summary": {
+        "crack": 1
+      },
+      "class_summary_cn": {
+        "裂纹": 1
+      },
+      "original_image_url": "/artifacts/api/5ead9abc9f034abfb97561098b32c11d/uploads/002_crack_1000.jpg",
+      "result_image_url": "/artifacts/api/5ead9abc9f034abfb97561098b32c11d/rendered/002_crack_1000_pred.jpg"
+    },
+    {
+      "image": "C:\\Users\\yys\\Desktop\\风机\\wind-fault-detection-platform\\runs\\api\\5ead9abc9f034abfb97561098b32c11d\\uploads\\003_spalling_1004.jpg",
+      "defect_count": 1,
+      "detections": [
+        {
+          "class_id": 2,
+          "class_name": "spalling",
+          "class_name_cn": "剥落",
+          "confidence": 0.968422,
+          "xyxy": [
+            359.43,
+            276.61,
+            510.94,
+            511.47
+          ]
+        }
+      ],
+      "uploaded_filename": "spalling_1004.jpg",
+      "saved_filename": "003_spalling_1004.jpg",
+      "class_summary": {
+        "spalling": 1
+      },
+      "class_summary_cn": {
+        "剥落": 1
+      },
+      "original_image_url": "/artifacts/api/5ead9abc9f034abfb97561098b32c11d/uploads/003_spalling_1004.jpg",
+      "result_image_url": "/artifacts/api/5ead9abc9f034abfb97561098b32c11d/rendered/003_spalling_1004_pred.jpg"
+    }
+  ],
+  "report_json": "C:\\Users\\yys\\Desktop\\风机\\wind-fault-detection-platform\\runs\\api\\5ead9abc9f034abfb97561098b32c11d\\reports\\detection_report.json",
+  "report_markdown": "C:\\Users\\yys\\Desktop\\风机\\wind-fault-detection-platform\\runs\\api\\5ead9abc9f034abfb97561098b32c11d\\reports\\detection_report.md",
+  "request_id": "5ead9abc9f034abfb97561098b32c11d",
+  "mode": "batch",
+  "uploaded_filename": "批量检测 3 张图片",
+  "uploaded_filenames": [
+    "hole_1000.jpg",
+    "crack_1000.jpg",
+    "spalling_1004.jpg"
+  ],
+  "created_at": "2026-06-04T14:14:35",
+  "confidence_threshold": 0.3,
+  "class_summary": {
+    "crack": 1,
+    "hole": 1,
+    "spalling": 1
+  },
+  "class_summary_cn": {
+    "裂纹": 1,
+    "孔洞": 1,
+    "剥落": 1
+  },
+  "risk_level": "高",
+  "advice": "本次共检测 3 张图片，发现 3 处缺陷，建议安排人工复核并形成巡检记录。",
+  "recommended_actions": [
+    "优先复核高置信度缺陷框，确认缺陷类型和范围。",
+    "裂纹、腐蚀或多处缺陷建议形成维修工单。",
+    "必要时使用更高分辨率或切片检测进行二次确认。"
+  ],
+  "original_image_url": "/artifacts/api/5ead9abc9f034abfb97561098b32c11d/uploads/001_hole_1000.jpg",
+  "result_image_url": "/artifacts/api/5ead9abc9f034abfb97561098b32c11d/rendered/001_hole_1000_pred.jpg",
+  "original_image_urls": [
+    "/artifacts/api/5ead9abc9f034abfb97561098b32c11d/uploads/001_hole_1000.jpg",
+    "/artifacts/api/5ead9abc9f034abfb97561098b32c11d/uploads/002_crack_1000.jpg",
+    "/artifacts/api/5ead9abc9f034abfb97561098b32c11d/uploads/003_spalling_1004.jpg"
+  ],
+  "result_image_urls": [
+    "/artifacts/api/5ead9abc9f034abfb97561098b32c11d/rendered/001_hole_1000_pred.jpg",
+    "/artifacts/api/5ead9abc9f034abfb97561098b32c11d/rendered/002_crack_1000_pred.jpg",
+    "/artifacts/api/5ead9abc9f034abfb97561098b32c11d/rendered/003_spalling_1004_pred.jpg"
+  ],
+  "report_page_url": "/report/5ead9abc9f034abfb97561098b32c11d",
+  "report_json_url": "/artifacts/api/5ead9abc9f034abfb97561098b32c11d/reports/detection_report.json",
+  "report_markdown_url": "/artifacts/api/5ead9abc9f034abfb97561098b32c11d/reports/detection_report.md"
+}

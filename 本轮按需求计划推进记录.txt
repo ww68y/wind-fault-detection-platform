@@ -1,0 +1,222 @@
+风机叶片缺陷检测工程 - 本轮按需求计划推进记录
+
+生成时间：2026-06-04
+
+
+一、本轮完成内容
+
+按照“风机检测工程下一步需求计划.txt”的推荐顺序，本轮优先完成了以下内容：
+
+1. 封版当前 v0.1 基线版本
+2. 新增视频检测能力
+3. 新增摄像头实时检测能力
+4. 新增模型评估与结果汇总页面
+
+
+二、v0.1 基线版本封版
+
+封版目录：
+
+release\v0.1_baseline
+
+已保存内容：
+
+- 当前 best.pt 模型
+- data.yaml 数据集配置
+- results.png 训练曲线
+- results.csv 训练指标
+- confusion_matrix.png 混淆矩阵
+- confusion_matrix_normalized.png 归一化混淆矩阵
+- BoxPR_curve.png PR 曲线
+- BoxF1_curve.png F1 曲线
+- val_batch0_labels.jpg 验证集真实标注图
+- val_batch0_pred.jpg 验证集预测图
+- 单图检测示例
+- 批量检测示例
+- 漏检样本 CSV 报告
+- VERSION说明.txt
+- MANIFEST.txt
+
+作用：
+
+该目录用于固定当前稳定版本，后续训练 v0.2 或继续改系统时，可以和 v0.1_baseline 做对比。
+
+
+三、视频检测功能
+
+新增文件：
+
+src\wind_fault\video\video_detector.py
+scripts\predict_video.py
+
+功能：
+
+- 支持 mp4、avi、mov、mkv、wmv 等视频文件
+- 对视频逐帧执行 YOLO 检测
+- 输出带检测框的视频
+- 保存关键帧截图
+- 生成 JSON 视频检测报告
+- 生成 Markdown 视频检测报告
+- 统计视频中的缺陷类别、缺陷数量、缺陷帧数、最高置信度和风险等级
+
+输出目录：
+
+runs\video_detect
+
+示例命令：
+
+python scripts\predict_video.py --model runs\detect\runs\wind_fault\gpu_640_b4_80e\weights\best.pt --source 视频文件路径.mp4 --conf 0.3 --project runs\video_detect --device 0
+
+本轮测试命令：
+
+python scripts\predict_video.py --model runs\detect\runs\wind_fault\gpu_640_b4_80e\weights\best.pt --source runs\video_detect\sample_input.avi --conf 0.3 --project runs\video_detect --name sample_check_v2 --device 0 --max-keyframes 5
+
+测试结果：
+
+- 视频检测成功
+- 6 帧测试视频全部完成推理
+- 检出 hole、crack、spalling
+- 已生成带框视频
+- 已生成关键帧
+- 已生成 video_detection_report.json
+- 已生成 video_detection_report.md
+
+测试输出目录：
+
+runs\video_detect\sample_check_v2
+
+
+四、摄像头实时检测功能
+
+新增文件：
+
+scripts\camera_realtime.py
+
+功能：
+
+- 默认使用电脑摄像头 source=0
+- 实时显示检测画面
+- 显示当前状态、风险等级、FPS、缺陷数量
+- 检测到高风险缺陷时自动截图
+- 自动保存截图对应的 JSON 结果
+- 支持按 q 退出
+- 退出时生成 camera_session_summary.json
+
+示例命令：
+
+python scripts\camera_realtime.py --model runs\detect\runs\wind_fault\gpu_640_b4_80e\weights\best.pt --source 0 --conf 0.3 --device 0
+
+说明：
+
+本轮没有直接打开摄像头，以免打断当前电脑操作；已完成脚本语法和命令行参数验证。
+
+
+五、模型评估页面
+
+新增页面：
+
+http://127.0.0.1:8000/evaluation
+
+新增接口：
+
+http://127.0.0.1:8000/evaluation/json
+
+页面内容：
+
+- 当前模型版本
+- 模型文件路径
+- Precision
+- Recall
+- mAP50
+- mAP50-95
+- results.png 训练曲线
+- confusion_matrix.png 混淆矩阵
+- BoxPR_curve.png PR 曲线
+- BoxF1_curve.png F1 曲线
+- 验证集真实标注示例
+- 验证集预测示例
+- 检测类别说明
+- 困难样本缩略图
+- 漏检样本 CSV 报告入口
+
+当前读取到的模型指标：
+
+- epoch：80
+- precision：0.9471
+- recall：0.9338
+- mAP50：0.9433
+- mAP50-95：0.8287
+
+
+六、首页入口更新
+
+首页新增了“模型评估”入口。
+
+首页地址：
+
+http://127.0.0.1:8000/
+
+现在首页右上方可以进入：
+
+- 模型评估
+- 接口文档
+
+
+七、本轮验证结果
+
+已经完成以下验证：
+
+1. Python 语法检查通过
+2. 项目测试通过
+
+测试结果：
+
+4 passed
+
+3. 视频检测脚本 --help 正常
+4. 摄像头检测脚本 --help 正常
+5. 短视频样本检测成功
+6. /health 返回 ok
+7. 首页可以打开
+8. /evaluation 页面可以打开
+9. /evaluation/json 可以返回模型指标
+
+
+八、当前可以怎么试
+
+1. 打开检测首页
+
+http://127.0.0.1:8000/
+
+2. 打开模型评估页
+
+http://127.0.0.1:8000/evaluation
+
+3. 检测视频
+
+把命令中的“视频文件路径.mp4”换成你自己的视频路径：
+
+python scripts\predict_video.py --model runs\detect\runs\wind_fault\gpu_640_b4_80e\weights\best.pt --source 视频文件路径.mp4 --conf 0.3 --project runs\video_detect --device 0
+
+4. 打开摄像头实时检测
+
+python scripts\camera_realtime.py --model runs\detect\runs\wind_fault\gpu_640_b4_80e\weights\best.pt --source 0 --conf 0.3 --device 0
+
+退出摄像头窗口：
+
+按 q
+
+
+九、下一步建议
+
+建议下一步继续做：
+
+1. 把视频检测接入网页上传入口
+2. 把视频检测结果页面做得更直观
+3. 给摄像头实时检测准备一个演示流程
+4. 继续优化网页报告样式
+5. 整理项目说明书和 PPT
+
+暂时不建议马上重训 v0.2。
+
+等补充真实巡检图片和修正 hard_cases 后，再训练 v0.2_realdata。

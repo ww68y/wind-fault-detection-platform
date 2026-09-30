@@ -1,0 +1,57 @@
+wind_blade_defect_v05_balanced dataset summary
+
+added_reason:added_dirt_negative: 468
+added_reason:added_mapped_damage: 1000
+added_reason:added_mapped_defect: 893
+added_reason:added_wt_voc: 1003
+base_test_clean_images: 543
+base_train_images: 4247
+base_val_images: 571
+original_class:Crack: 208
+original_class:Erosion: 227
+original_class:Good: 1061
+original_class:MechanicalDamage: 60
+original_class:Paintoff: 195
+original_class:Scratch: 411
+original_class:corrosion: 257
+original_class:crack: 224
+original_class:craze: 257
+original_class:damage: 8770
+original_class:dirt: 581
+original_class:hide_craze: 342
+original_class:surface_injure: 412
+original_class:thunderstrike: 92
+output_test_clean_empty_labels: 18
+output_test_clean_images: 543
+output_test_clean_labels: 543
+output_train_empty_labels: 786
+output_train_images: 7611
+output_train_labels: 7611
+output_val_empty_labels: 17
+output_val_images: 571
+output_val_labels: 571
+roboflow_wind_turbine_blades_added_images: 893
+roboflow_wind_turbine_blades_seen_images: 1162
+roboflow_wind_turbine_blades_skipped_negative_only: 236
+roboflow_wind_turbine_blades_skipped_unmapped: 33
+t6_added_damage_images: 1000
+t6_added_images: 1468
+t6_added_negative_images: 468
+t6_seen_images: 13470
+t6_skipped_damage_cap: 1525
+t6_skipped_missing_label: 10475
+t6_skipped_unmapped: 2
+target_object:corrosion: 483
+target_object:crack: 1442
+target_object:spalling: 4160
+wt_added_images: 1003
+wt_seen_xml: 1065
+wt_skipped_unmapped: 62
+
+Class mapping:
+Crack/Scratch/Craze/Hide_craze -> crack
+Erosion/Corrosion -> corrosion
+Damage/MechanicalDamage/Paintoff/Surface_injure/Chipping -> spalling
+Puncture/Hole -> hole
+Good/Dirt-only -> negative empty label, except Roboflow Good-only is skipped because v04 already includes curated negatives
+object/thunderstrike/unannotated -> skipped in this conservative version

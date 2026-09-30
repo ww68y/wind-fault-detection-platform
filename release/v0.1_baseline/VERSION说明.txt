@@ -1,0 +1,159 @@
+风机叶片缺陷检测工程 v0.1_baseline 版本说明
+
+封版时间：2026-06-04
+版本名称：v0.1_baseline
+版本定位：当前稳定基线版本
+
+
+一、版本目标
+
+本版本用于固定当前已经可以稳定运行的风机叶片缺陷检测工程，作为后续 v0.2、v0.3 模型和系统功能升级的对照基线。
+
+该版本已经具备：
+
+1. YOLOv8 风机叶片缺陷检测模型；
+2. 单张图片检测；
+3. 批量图片检测；
+4. 本地网页检测界面；
+5. JSON 报告；
+6. Markdown 报告；
+7. 网页报告；
+8. 历史检测记录；
+9. 漏检样本分析结果；
+10. 当前训练评估结果。
+
+
+二、当前检测类别
+
+当前模型检测 4 类风机叶片表面缺陷：
+
+1. crack：裂纹
+2. hole：孔洞
+3. spalling：剥落
+4. corrosion：腐蚀
+
+说明：
+blade 当前作为正常叶片图片，不作为缺陷检测类别。
+
+
+三、当前模型文件
+
+模型文件：
+
+model\best.pt
+
+原始路径：
+
+runs\detect\runs\wind_fault\gpu_640_b4_80e\weights\best.pt
+
+
+四、当前数据配置
+
+数据集配置文件：
+
+data\data.yaml
+
+原始路径：
+
+datasets\wind_blade_defect\data.yaml
+
+
+五、当前模型评估指标
+
+当前训练结果大致指标：
+
+- Precision：约 0.947
+- Recall：约 0.934
+- mAP50：约 0.943
+- mAP50-95：约 0.829
+
+训练曲线和评估图保存在：
+
+training_artifacts
+
+主要包括：
+
+- results.png
+- results.csv
+- confusion_matrix.png
+- confusion_matrix_normalized.png
+- BoxPR_curve.png
+- BoxF1_curve.png
+- val_batch0_labels.jpg
+- val_batch0_pred.jpg
+
+
+六、检测示例
+
+单张图片检测示例：
+
+examples\single_image_detection
+
+批量图片检测示例：
+
+examples\batch_image_detection
+
+其中包含：
+
+- uploads：上传原图
+- rendered：检测结果图
+- reports：检测报告
+- predict：YOLO 原始预测输出
+
+
+七、漏检样本分析
+
+漏检样本报告：
+
+reports\missed_samples_report.csv
+
+困难样本原始目录：
+
+hard_cases\missed_samples
+
+
+八、当前版本使用方式
+
+在项目根目录启动本地服务后访问：
+
+http://127.0.0.1:8000/
+
+接口文档：
+
+http://127.0.0.1:8000/docs
+
+单图检测接口：
+
+POST /detect
+
+批量检测接口：
+
+POST /detect/batch
+
+
+九、封版意义
+
+保留该版本的目的：
+
+1. 后续代码改动出现问题时可以回看当前稳定版本；
+2. 后续 v0.2 模型可以和 v0.1_baseline 做指标对比；
+3. 项目展示或阶段验收时可以直接引用当前版本结果；
+4. 便于整理项目说明书、PPT 和演示材料。
+
+
+十、后续版本建议
+
+v0.2 不建议立即重训。
+
+建议先补充：
+
+1. 真实巡检图片；
+2. 低对比度裂纹；
+3. 小孔洞；
+4. 腐蚀边界模糊图片；
+5. 正常叶片图片；
+6. hard_cases 中的漏检和误检样本。
+
+补充并修正数据后，再训练：
+
+runs\detect\wind_fault_v0.2_realdata

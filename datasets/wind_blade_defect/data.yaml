@@ -1,0 +1,10 @@
+path: datasets/wind_blade_defect
+train: images/train
+val: images/val
+test: images/test
+
+names:
+  0: crack
+  1: hole
+  2: spalling
+  3: corrosion

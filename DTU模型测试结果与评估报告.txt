@@ -1,0 +1,257 @@
+DTU 1024 模型测试结果与评估报告
+生成日期：2026-06-04
+
+一、评估目的
+
+本次评估的目标是检查 DTU 1024 切片数据训练出的模型是否具备实际使用价值，并判断它是否适合接入当前风机叶片缺陷检测工程。
+
+重点关注：
+
+1. DTU 模型在 DTU test 测试集上的检测效果；
+2. 模型对不同 DTU 缺陷类别的识别能力；
+3. 是否适合直接替换当前 4 类主模型；
+4. 是否适合作为细小缺陷增强模型或困难样本补充来源。
+
+
+二、模型与数据
+
+1. DTU 模型路径
+
+runs\detect\runs\wind_fault\dtu\dtu_1024_b1_80e_20260604_171248\weights\best.pt
+
+2. 训练数据集
+
+datasets\dtu_1024_yolo
+
+3. 测试集图片目录
+
+datasets\dtu_1024_yolo\images\test
+
+4. 测试集规模
+
+图片数量：93 张
+标注目标数量：124 个
+
+5. DTU 类别体系
+
+0: LE;ER
+1: SF;PO
+2: VG;MT
+3: LR;DA
+4: LE;CR
+
+说明：DTU 的 5 类缺陷体系和当前网页默认使用的 crack / hole / spalling / corrosion 四类体系不是同一个类别体系，因此不能直接混合使用。
+
+
+三、已生成的测试结果图
+
+1. DTU 测试集预测结果图目录
+
+runs\detect\runs\wind_fault\dtu_eval\dtu_1024_test_pred_80e
+
+该目录中已经生成 93 张测试集预测结果图。
+
+2. DTU 预测报告目录
+
+runs\wind_fault\dtu_eval\dtu_1024_test_pred_80e\reports
+
+其中包含：
+
+detection_report.json
+detection_report.md
+
+3. DTU 结果预览拼图
+
+runs\wind_fault\dtu_eval\dtu_1024_test_pred_80e\dtu_test_preview_grid.jpg
+
+该图片将部分测试结果图拼接在一起，方便快速查看模型可视化检测效果。
+
+
+四、正式 test split 验证指标
+
+验证命令使用 DTU 模型在 datasets\dtu_1024_yolo 的 test split 上执行 YOLO val。
+
+测试集总体指标：
+
+Precision: 0.672
+Recall: 0.665
+mAP50: 0.702
+mAP50-95: 0.331
+
+分类别指标：
+
+类别      图片数  实例数  Precision  Recall  mAP50  mAP50-95
+LE;ER       46     58      0.770     0.690   0.725   0.373
+SF;PO       10     10      0.460     0.600   0.586   0.397
+VG;MT       29     39      0.931     0.689   0.766   0.332
+LR;DA        6      6      1.000     0.620   0.995   0.321
+LE;CR       10     11      0.200     0.727   0.438   0.234
+
+验证结果图目录：
+
+runs\detect\runs\wind_fault\dtu_eval\dtu_1024_test_val_80e
+
+该目录包含：
+
+BoxF1_curve.png
+BoxPR_curve.png
+BoxP_curve.png
+BoxR_curve.png
+confusion_matrix.png
+confusion_matrix_normalized.png
+val_batch0_labels.jpg
+val_batch0_pred.jpg
+val_batch1_labels.jpg
+val_batch1_pred.jpg
+val_batch2_labels.jpg
+val_batch2_pred.jpg
+
+
+五、预测结果统计
+
+在 conf=0.3 阈值下，对 93 张 DTU test 图片进行预测，共输出 196 个检测框。
+
+预测类别数量统计：
+
+LE;ER: 69
+SF;PO: 13
+VG;MT: 35
+LR;DA: 5
+LE;CR: 74
+
+说明：
+
+LE;CR 预测数量明显偏多，而 test 标注中 LE;CR 实例只有 11 个，结合 Precision=0.200，可以初步判断该类别存在较明显误检问题。
+
+
+六、效果判断
+
+1. 总体效果
+
+DTU 模型已经具备一定检测能力。
+
+mAP50 达到 0.702，说明模型能够在较宽松的 IoU 标准下识别一部分 DTU 缺陷。
+
+但是 mAP50-95 只有 0.331，说明检测框精细定位能力还不够稳定，框的位置和范围仍需要优化。
+
+2. 优势类别
+
+VG;MT 表现较好：
+
+Precision: 0.931
+mAP50: 0.766
+
+说明模型对该类缺陷的误检较少，检测相对可信。
+
+LE;ER 表现中等：
+
+Precision: 0.770
+Recall: 0.690
+mAP50: 0.725
+
+该类别有一定实用价值，但仍存在漏检。
+
+3. 风险类别
+
+LE;CR 问题较明显：
+
+Precision: 0.200
+Recall: 0.727
+mAP50: 0.438
+
+该类别召回率不低，但精度很差，说明模型倾向于把很多区域误判成 LE;CR。
+
+LR;DA 测试样本数量只有 6 个，虽然 mAP50 很高，但样本太少，暂时不能过度相信该类别结论。
+
+4. 推理速度
+
+在 GTX 1650 上，1024x1024 单图推理约 14.8ms，速度可以接受。
+
+
+七、是否适合接入当前网页主模型
+
+结论：暂时不建议直接接入为当前网页默认主模型。
+
+原因：
+
+1. DTU 类别体系和当前主模型类别体系不同；
+2. 当前网页默认模型是 crack / hole / spalling / corrosion 四类；
+3. DTU 模型是 LE;ER / SF;PO / VG;MT / LR;DA / LE;CR 五类；
+4. LE;CR 类别误检偏多；
+5. mAP50-95 较低，说明定位质量还不够稳定；
+6. 如果直接接入网页，用户可能难以理解 DTU 类别名称。
+
+
+八、推荐后续路线
+
+当前最稳的路线是：
+
+先不要融合 DTU 模型，先把 DTU 作为模型优化和困难样本补充来源。
+
+建议下一步：
+
+1. 人工查看 DTU 测试结果图
+
+重点查看：
+
+runs\detect\runs\wind_fault\dtu_eval\dtu_1024_test_pred_80e
+
+尤其关注 LE;CR 误检较多的图片。
+
+2. 建立 DTU 困难样本清单
+
+从 DTU 测试结果中整理：
+
+- 明显误检样本；
+- 明显漏检样本；
+- 小目标缺陷样本；
+- 长条形缺陷样本；
+- 低置信度样本。
+
+可以放入：
+
+hard_cases\false_positive_samples
+hard_cases\low_confidence_samples
+hard_cases\missed_samples
+
+3. 不直接替换当前 4 类主模型
+
+当前网页继续默认使用：
+
+runs\detect\runs\wind_fault\gpu_640_b4_80e\weights\best.pt
+
+该模型更适合当前网页四类缺陷展示。
+
+4. 可考虑后续做双模型模式
+
+如果后续需要，可以在网页中增加模型选择：
+
+- 通用风机缺陷模型：crack / hole / spalling / corrosion
+- DTU 细小缺陷模型：LE;ER / SF;PO / VG;MT / LR;DA / LE;CR
+
+但该功能建议放在 DTU 误检问题分析之后再做。
+
+5. 可考虑后续做类别映射与合并训练
+
+如果要把 DTU 数据真正用于提升当前模型，需要先做类别映射，例如：
+
+DTU 类别 -> 当前工程类别或 other_damage
+
+然后重新整理标注，再训练 v0.2 模型。
+
+
+九、当前结论
+
+DTU 模型已经训练完成，并且已经生成测试集预测结果图和正式测试指标。
+
+该模型不是无效模型，已经具备一定缺陷检出能力，但目前还不适合直接替换当前主模型。
+
+当前最合理的处理方式是：
+
+把 DTU 模型作为“细小缺陷增强评估模型”和“困难样本来源”，先进行人工复查和误检整理；当前网页主检测继续使用原来的 4 类模型。
+
+后续如果 DTU 样本整理完成，可以再考虑：
+
+1. 双模型模式；
+2. 类别统一后合并训练；
+3. 从 DTU 中筛选困难样本微调当前 4 类模型。

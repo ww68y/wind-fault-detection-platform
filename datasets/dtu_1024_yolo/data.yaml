@@ -1,0 +1,11 @@
+path: datasets/dtu_1024_yolo
+train: images/train
+val: images/val
+test: images/test
+
+names:
+  0: LE;ER
+  1: SF;PO
+  2: VG;MT
+  3: LR;DA
+  4: LE;CR

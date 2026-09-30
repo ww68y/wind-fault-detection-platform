@@ -1,0 +1,814 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>风机叶片缺陷检测</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --panel: #ffffff;
+      --text: #16202a;
+      --muted: #637081;
+      --line: #d7dde7;
+      --accent: #2563eb;
+      --accent-strong: #1d4ed8;
+      --ok: #0f766e;
+      --danger: #b91c1c;
+      --soft: #eef2f7;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+    h1, h2, h3, p { margin: 0; }
+
+    .topbar {
+      background: var(--panel);
+      border-bottom: 1px solid var(--line);
+      padding: 18px 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+    }
+    .title h1 { font-size: 22px; font-weight: 700; }
+    .title p { margin-top: 4px; color: var(--muted); font-size: 13px; }
+    .nav { display: flex; gap: 14px; flex-wrap: wrap; }
+    a, .text-link { color: var(--accent); text-decoration: none; }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 370px 1fr;
+      gap: 20px;
+      padding: 20px 28px 28px;
+      align-items: start;
+    }
+    .stack { display: grid; gap: 16px; }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .panel-header {
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      font-weight: 700;
+      font-size: 14px;
+    }
+    .panel-body { padding: 18px; display: grid; gap: 16px; }
+    .field { display: grid; gap: 8px; }
+    .field label { font-size: 13px; color: var(--muted); }
+    input[type="file"], input[type="number"] {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 10px;
+      background: #fff;
+      font-size: 14px;
+    }
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 104px;
+      gap: 12px;
+      align-items: end;
+    }
+    button {
+      border: 0;
+      border-radius: 6px;
+      background: var(--accent);
+      color: #fff;
+      padding: 11px 14px;
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+      min-height: 42px;
+    }
+    button:hover { background: var(--accent-strong); }
+    button:disabled { opacity: 0.58; cursor: progress; }
+    .hint, .status { color: var(--muted); font-size: 13px; line-height: 1.6; }
+    .status.ok { color: var(--ok); }
+    .status.danger { color: var(--danger); }
+
+    .history-list {
+      display: grid;
+      gap: 8px;
+      max-height: 430px;
+      overflow: auto;
+    }
+    .history-item {
+      width: 100%;
+      text-align: left;
+      background: #fff;
+      color: var(--text);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 10px;
+      display: grid;
+      gap: 4px;
+      cursor: pointer;
+    }
+    .history-item:hover { border-color: #9db7f2; background: #f8fbff; }
+    .history-meta {
+      color: var(--muted);
+      font-size: 12px;
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .metric {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+      min-height: 88px;
+    }
+    .metric .label { color: var(--muted); font-size: 12px; margin-bottom: 8px; }
+    .metric .value { font-size: 24px; font-weight: 800; overflow-wrap: anywhere; }
+
+    .media-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .media-box {
+      min-height: 420px;
+      background: var(--soft);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+    }
+    .media-box img, .media-box video {
+      width: 100%;
+      height: 100%;
+      max-height: 620px;
+      object-fit: contain;
+      display: block;
+    }
+    .placeholder { color: var(--muted); font-size: 13px; }
+
+    .thumb-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 12px;
+    }
+    .thumb-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      padding: 10px;
+      display: grid;
+      gap: 8px;
+      text-align: left;
+      color: var(--text);
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .thumb-card img {
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      object-fit: contain;
+      background: var(--soft);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+    }
+    .thumb-card strong { overflow-wrap: anywhere; font-size: 13px; }
+    .thumb-card span { color: var(--muted); font-size: 12px; }
+
+    .report-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .advice { color: #263443; line-height: 1.8; font-size: 14px; }
+    .actions { margin: 0; padding-left: 20px; line-height: 1.8; font-size: 14px; }
+    .links { display: flex; flex-wrap: wrap; gap: 12px; }
+    .panel-header button {
+      padding: 8px 12px;
+      min-height: 34px;
+      font-size: 13px;
+    }
+    .analysis-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+    .analysis-block {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 14px;
+      background: #fff;
+      display: grid;
+      gap: 8px;
+    }
+    .analysis-block.full { grid-column: 1 / -1; }
+    .analysis-block h3 { font-size: 14px; }
+    .analysis-block p, .analysis-block li { color: #263443; line-height: 1.7; font-size: 14px; }
+    .analysis-block ul { margin: 0; padding-left: 18px; }
+    .risk-pill {
+      display: inline-flex;
+      width: fit-content;
+      border-radius: 999px;
+      background: #eff6ff;
+      color: #1d4ed8;
+      padding: 4px 9px;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td {
+      padding: 10px 8px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+    th { color: var(--muted); font-weight: 600; }
+    code { font-family: Consolas, monospace; font-size: 12px; color: #334155; }
+
+    @media (max-width: 1180px) {
+      .layout { grid-template-columns: 1fr; }
+      .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 760px) {
+      .topbar { padding: 16px; align-items: flex-start; flex-direction: column; }
+      .layout { padding: 16px; }
+      .metrics, .media-grid, .report-grid, .analysis-grid { grid-template-columns: 1fr; }
+      .analysis-block.full { grid-column: auto; }
+      .row { grid-template-columns: 1fr; }
+      .media-box { min-height: 300px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="title">
+      <h1>风机叶片缺陷检测</h1>
+      <p>YOLO 本地检测工作台</p>
+    </div>
+    <div class="nav">
+      <a href="/evaluation" target="_blank" rel="noreferrer">模型评估</a>
+      <a href="/docs" target="_blank" rel="noreferrer">接口文档</a>
+    </div>
+  </header>
+
+  <main class="layout">
+    <aside class="stack">
+      <section class="panel">
+        <div class="panel-header">图片检测</div>
+        <form id="image-form" class="panel-body">
+          <div class="field">
+            <label for="image-files">图片文件</label>
+            <input id="image-files" name="files" type="file" accept="image/*" multiple required>
+            <p id="image-count-hint" class="hint">可以一次选择多张图片。</p>
+          </div>
+          <div class="row">
+            <div class="field">
+              <label for="image-conf">置信度阈值</label>
+              <input id="image-conf" type="number" min="0.01" max="0.99" step="0.01" value="0.45">
+            </div>
+            <button id="image-submit" type="submit">开始检测</button>
+          </div>
+          <div id="image-status" class="status">等待上传。</div>
+        </form>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">视频检测</div>
+        <form id="video-form" class="panel-body">
+          <div class="field">
+            <label for="video-file">视频文件</label>
+            <input id="video-file" name="file" type="file" accept="video/*,.mp4,.avi,.mov,.mkv,.wmv" required>
+            <p class="hint">这里选择视频文件。建议先用短视频测试。</p>
+          </div>
+          <div class="row">
+            <div class="field">
+              <label for="video-conf">置信度阈值</label>
+              <input id="video-conf" type="number" min="0.01" max="0.99" step="0.01" value="0.45">
+            </div>
+            <button id="video-submit" type="submit">检测视频</button>
+          </div>
+          <div id="video-status" class="status">等待上传。</div>
+        </form>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <span>历史记录</span>
+          <a class="text-link" href="#" id="refresh-history">刷新</a>
+        </div>
+        <div class="panel-body">
+          <div id="history" class="history-list">
+            <div class="placeholder">暂无记录。</div>
+          </div>
+        </div>
+      </section>
+    </aside>
+
+    <section class="stack">
+      <section class="metrics">
+        <div class="metric"><div class="label">请求 ID</div><div id="request-id" class="value">-</div></div>
+        <div class="metric"><div class="label">媒体数量/帧</div><div id="media-count" class="value">0</div></div>
+        <div class="metric"><div class="label">缺陷总数</div><div id="total-defects" class="value">0</div></div>
+        <div class="metric"><div class="label">检测状态</div><div id="detect-state" class="value">待检测</div></div>
+        <div class="metric"><div class="label">文件名称</div><div id="filename" class="value">-</div></div>
+      </section>
+
+      <section class="media-grid">
+        <div class="panel">
+          <div class="panel-header" id="original-title">原图/原视频</div>
+          <div class="panel-body">
+            <div id="original-box" class="media-box"><span class="placeholder">原图/原视频</span></div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-header" id="result-title">检测结果</div>
+          <div class="panel-body">
+            <div id="result-box" class="media-box"><span class="placeholder">检测结果</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" id="thumb-panel" hidden>
+        <div class="panel-header" id="thumb-title">批量结果</div>
+        <div class="panel-body">
+          <div id="thumb-results" class="thumb-grid"></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">检测报告</div>
+        <div class="panel-body">
+          <div class="report-grid">
+            <div>
+              <h3>处理建议</h3>
+              <p id="advice" class="advice">-</p>
+            </div>
+            <div>
+              <h3>建议动作</h3>
+              <ul id="actions" class="actions"><li>-</li></ul>
+            </div>
+          </div>
+          <div id="report-links" class="links"></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <span>故障分析</span>
+          <button id="analysis-submit" type="button" disabled>生成故障分析</button>
+        </div>
+        <div class="panel-body">
+          <div id="analysis-status" class="status">检测完成后可生成故障分析。</div>
+          <div id="analysis-content" class="analysis-grid">
+            <div class="analysis-block full">
+              <h3>分析结果</h3>
+              <p class="placeholder">暂无故障分析。</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">缺陷明细</div>
+        <div class="panel-body">
+          <table>
+            <thead>
+              <tr>
+                <th>来源</th>
+                <th>类别</th>
+                <th>中文类别</th>
+                <th>置信度</th>
+                <th>边框/帧信息</th>
+              </tr>
+            </thead>
+            <tbody id="details">
+              <tr><td colspan="5">暂无结果。</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    const imageForm = document.querySelector("#image-form");
+    const imageFiles = document.querySelector("#image-files");
+    const imageCountHint = document.querySelector("#image-count-hint");
+    const imageConf = document.querySelector("#image-conf");
+    const imageSubmit = document.querySelector("#image-submit");
+    const imageStatus = document.querySelector("#image-status");
+
+    const videoForm = document.querySelector("#video-form");
+    const videoFile = document.querySelector("#video-file");
+    const videoConf = document.querySelector("#video-conf");
+    const videoSubmit = document.querySelector("#video-submit");
+    const videoStatus = document.querySelector("#video-status");
+
+    const historyEl = document.querySelector("#history");
+    const thumbPanel = document.querySelector("#thumb-panel");
+    const thumbResults = document.querySelector("#thumb-results");
+    const thumbTitle = document.querySelector("#thumb-title");
+    const analysisSubmit = document.querySelector("#analysis-submit");
+    const analysisStatus = document.querySelector("#analysis-status");
+    const analysisContent = document.querySelector("#analysis-content");
+    let currentPayload = null;
+
+    const classNames = {
+      crack: "裂纹",
+      hole: "孔洞",
+      spalling: "剥落",
+      corrosion: "腐蚀",
+    };
+
+    function escapeHtml(value) {
+      return String(value ?? "").replace(/[&<>"']/g, (char) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;",
+      }[char]));
+    }
+
+    function setStatus(el, text, type = "") {
+      el.textContent = text;
+      el.className = `status ${type}`.trim();
+    }
+
+    function setMedia(boxId, type, url, fallbackText) {
+      const box = document.querySelector(boxId);
+      box.innerHTML = "";
+      if (!url) {
+        const span = document.createElement("span");
+        span.className = "placeholder";
+        span.textContent = fallbackText;
+        box.appendChild(span);
+        return;
+      }
+      const el = document.createElement(type === "video" ? "video" : "img");
+      el.src = url;
+      el.alt = fallbackText;
+      if (type === "video") el.controls = true;
+      box.appendChild(el);
+    }
+
+    function renderLinks(payload) {
+      const links = document.querySelector("#report-links");
+      const analysis = payload.analysis_report || {};
+      const items = [
+        ["报告页面", payload.report_page_url],
+        ["完整报告", payload.complete_report_markdown_url || analysis.complete_report_markdown_url],
+        ["完整JSON", payload.complete_report_json_url || analysis.complete_report_json_url],
+        ["JSON", payload.report_json_url],
+        ["Markdown", payload.report_markdown_url],
+        ["分析报告", payload.analysis_report_markdown_url || analysis.analysis_report_markdown_url],
+        ["检测结果视频", payload.result_video_url],
+      ].filter((item) => item[1]);
+      links.innerHTML = items.map(([label, url]) => (
+        `<a class="text-link" href="${escapeHtml(url)}" target="_blank" rel="noreferrer">${escapeHtml(label)}</a>`
+      )).join("");
+    }
+
+    function renderList(items) {
+      const values = Array.isArray(items) ? items : [];
+      return values.length
+        ? `<ul>${values.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>`
+        : "<p>-</p>";
+    }
+
+    function resetAnalysis(message = "检测完成后可生成故障分析。") {
+      setStatus(analysisStatus, message);
+      analysisSubmit.disabled = !currentPayload?.request_id;
+      analysisContent.innerHTML = `
+        <div class="analysis-block full">
+          <h3>分析结果</h3>
+          <p class="placeholder">暂无故障分析。</p>
+        </div>
+      `;
+    }
+
+    function renderAnalysis(analysis) {
+      if (!analysis) {
+        resetAnalysis();
+        return;
+      }
+      analysisSubmit.disabled = !currentPayload?.request_id;
+      setStatus(analysisStatus, "故障分析已生成。", "ok");
+      analysisContent.innerHTML = `
+        <div class="analysis-block">
+          <h3>风险等级</h3>
+          <span class="risk-pill">${escapeHtml(analysis.risk_level || "-")}</span>
+          <p>${escapeHtml(analysis.confidence_level || "")}</p>
+        </div>
+        <div class="analysis-block">
+          <h3>故障摘要</h3>
+          <p>${escapeHtml(analysis.fault_summary || "-")}</p>
+        </div>
+        <div class="analysis-block full">
+          <h3>故障现象</h3>
+          <p>${escapeHtml(analysis.fault_description || "-")}</p>
+        </div>
+        <div class="analysis-block">
+          <h3>可能原因</h3>
+          ${renderList(analysis.possible_causes)}
+        </div>
+        <div class="analysis-block">
+          <h3>运维建议</h3>
+          ${renderList(analysis.maintenance_advice)}
+        </div>
+        <div class="analysis-block full">
+          <h3>风险影响</h3>
+          <p>${escapeHtml(analysis.risk_impact || "-")}</p>
+        </div>
+        <div class="analysis-block">
+          <h3>复检要求</h3>
+          <p>${escapeHtml(analysis.recheck_requirement || "-")}</p>
+        </div>
+        <div class="analysis-block">
+          <h3>是否建议停机</h3>
+          <p>${escapeHtml(analysis.shutdown_suggestion || "-")}</p>
+        </div>
+        <div class="analysis-block full">
+          <h3>人工复核提示</h3>
+          <p>${escapeHtml(analysis.manual_review_notice || "-")}</p>
+        </div>
+      `;
+    }
+
+    function renderActions(payload) {
+      const actions = document.querySelector("#actions");
+      const items = payload.recommended_actions || [];
+      actions.innerHTML = items.length
+        ? items.map((item) => `<li>${escapeHtml(item)}</li>`).join("")
+        : "<li>-</li>";
+    }
+
+    function renderImageDetails(payload) {
+      const details = document.querySelector("#details");
+      const detections = (payload.items || []).flatMap((item) => (
+        (item.detections || []).map((detection) => ({ ...detection, source_name: item.uploaded_filename || "-" }))
+      ));
+      if (!detections.length) {
+        details.innerHTML = '<tr><td colspan="5">未检测到缺陷。</td></tr>';
+        return;
+      }
+      details.innerHTML = detections.map((item) => {
+        const name = item.class_name || "-";
+        const nameCn = item.class_name_cn || classNames[name] || name;
+        const conf = Number(item.confidence || 0).toFixed(3);
+        return `<tr><td>${escapeHtml(item.source_name)}</td><td>${escapeHtml(name)}</td><td>${escapeHtml(nameCn)}</td><td>${conf}</td><td><code>${escapeHtml(JSON.stringify(item.xyxy || []))}</code></td></tr>`;
+      }).join("");
+    }
+
+    function renderVideoDetails(payload) {
+      const details = document.querySelector("#details");
+      const rows = [];
+      for (const frame of payload.frames || []) {
+        for (const detection of frame.detections || []) {
+          const name = detection.class_name || "-";
+          const nameCn = detection.class_name_cn || classNames[name] || name;
+          const conf = Number(detection.confidence || 0).toFixed(3);
+          const meta = `第 ${frame.frame_index} 帧 / ${frame.time_seconds ?? "-"} 秒 / ${JSON.stringify(detection.xyxy || [])}`;
+          rows.push(`<tr><td>${escapeHtml(payload.uploaded_filename || "-")}</td><td>${escapeHtml(name)}</td><td>${escapeHtml(nameCn)}</td><td>${conf}</td><td><code>${escapeHtml(meta)}</code></td></tr>`);
+        }
+      }
+      details.innerHTML = rows.length ? rows.join("") : '<tr><td colspan="5">未检测到缺陷帧。</td></tr>';
+    }
+
+    function showImageItem(item) {
+      document.querySelector("#original-title").textContent = "原图";
+      document.querySelector("#result-title").textContent = "检测结果图";
+      setMedia("#original-box", "image", item?.original_image_url, "原图");
+      setMedia("#result-box", "image", item?.result_image_url, "检测结果图");
+    }
+
+    function renderImageThumbs(payload) {
+      const items = payload.items || [];
+      if (items.length <= 1) {
+        thumbPanel.hidden = true;
+        thumbResults.innerHTML = "";
+        return;
+      }
+      thumbTitle.textContent = "批量结果";
+      thumbPanel.hidden = false;
+      thumbResults.innerHTML = items.map((item, index) => `
+        <button class="thumb-card" type="button" data-kind="image" data-index="${index}">
+          <img src="${escapeHtml(item.result_image_url || item.original_image_url || "")}" alt="${escapeHtml(item.uploaded_filename || "检测结果")}">
+          <strong>${escapeHtml(item.uploaded_filename || "-")}</strong>
+          <span>${item.defect_count || 0} 个缺陷</span>
+        </button>
+      `).join("");
+    }
+
+    function renderVideoKeyframes(payload) {
+      const keyframes = payload.keyframes || [];
+      if (!keyframes.length) {
+        thumbPanel.hidden = true;
+        thumbResults.innerHTML = "";
+        return;
+      }
+      thumbTitle.textContent = "视频关键帧";
+      thumbPanel.hidden = false;
+      thumbResults.innerHTML = keyframes.map((item) => `
+        <a class="thumb-card" href="${escapeHtml(item.image_url || "#")}" target="_blank" rel="noopener">
+          <img src="${escapeHtml(item.image_url || "")}" alt="关键帧">
+          <strong>第 ${item.frame_index} 帧</strong>
+          <span>${item.time_seconds ?? "-"} 秒 / ${item.defect_count || 0} 个缺陷</span>
+        </a>
+      `).join("");
+    }
+
+    function renderImageResult(payload) {
+      currentPayload = payload;
+      const items = payload.items || [];
+      const firstItem = items[0] || payload;
+      document.querySelector("#request-id").textContent = (payload.request_id || "-").slice(0, 8);
+      document.querySelector("#media-count").textContent = payload.image_count ?? items.length ?? 0;
+      document.querySelector("#total-defects").textContent = payload.total_defects ?? 0;
+      document.querySelector("#detect-state").textContent = (payload.total_defects || 0) > 0 ? "发现缺陷" : "未发现缺陷";
+      document.querySelector("#filename").textContent = payload.uploaded_filename || "-";
+      document.querySelector("#advice").textContent = payload.advice || "-";
+      showImageItem(firstItem);
+      renderImageThumbs(payload);
+      renderActions(payload);
+      renderLinks(payload);
+      renderImageDetails(payload);
+      renderAnalysis(payload.analysis_report);
+    }
+
+    function renderVideoResult(payload) {
+      currentPayload = payload;
+      document.querySelector("#request-id").textContent = (payload.request_id || "-").slice(0, 8);
+      document.querySelector("#media-count").textContent = payload.processed_frames ?? 0;
+      document.querySelector("#total-defects").textContent = payload.total_defects ?? 0;
+      document.querySelector("#detect-state").textContent = (payload.total_defects || 0) > 0 ? "发现缺陷" : "未发现缺陷";
+      document.querySelector("#filename").textContent = payload.uploaded_filename || "-";
+      document.querySelector("#advice").textContent = payload.advice || "-";
+      document.querySelector("#original-title").textContent = "原视频";
+      document.querySelector("#result-title").textContent = "检测结果视频";
+      setMedia("#original-box", "video", payload.original_video_url, "原视频");
+      setMedia("#result-box", "video", payload.result_video_url, "检测结果视频");
+      renderVideoKeyframes(payload);
+      renderActions(payload);
+      renderLinks(payload);
+      renderVideoDetails(payload);
+      renderAnalysis(payload.analysis_report);
+    }
+
+    function renderPayload(payload) {
+      if (payload.mode === "video") renderVideoResult(payload);
+      else renderImageResult(payload);
+    }
+
+    async function loadHistory() {
+      const res = await fetch("/history?limit=20");
+      const data = await res.json();
+      const items = data.items || [];
+      if (!items.length) {
+        historyEl.innerHTML = '<div class="placeholder">暂无记录。</div>';
+        return;
+      }
+      historyEl.innerHTML = items.map((item) => `
+        <button class="history-item" type="button" data-id="${item.request_id}">
+          <strong>${escapeHtml(item.uploaded_filename || "-")}</strong>
+          <span class="history-meta">
+            <span>${escapeHtml(item.short_id || "-")}</span>
+            <span>${item.image_count ?? 0} 张/帧 · ${item.total_defects ?? 0} 个缺陷</span>
+          </span>
+        </button>
+      `).join("");
+    }
+
+    imageFiles.addEventListener("change", () => {
+      const count = imageFiles.files.length;
+      imageCountHint.textContent = count ? `已选择 ${count} 张图片。` : "可以一次选择多张图片。";
+    });
+
+    imageForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const files = Array.from(imageFiles.files || []);
+      if (!files.length) return;
+
+      setMedia("#original-box", "image", URL.createObjectURL(files[0]), "原图");
+      setMedia("#result-box", "image", "", "检测结果图");
+      thumbPanel.hidden = true;
+      currentPayload = null;
+      resetAnalysis("检测完成后可生成故障分析。");
+      imageSubmit.disabled = true;
+      setStatus(imageStatus, files.length > 1 ? `批量检测中，共 ${files.length} 张图片。` : "检测中。");
+
+      try {
+        const formData = new FormData();
+        for (const file of files) formData.append("files", file);
+        const conf = encodeURIComponent(imageConf.value || "0.45");
+        const res = await fetch(`/detect/batch?conf=${conf}`, { method: "POST", body: formData });
+        const payload = await res.json();
+        if (!res.ok) throw new Error(payload.detail || "检测失败");
+        renderImageResult(payload);
+        setStatus(imageStatus, `检测完成，共检测 ${payload.image_count || files.length} 张图片，识别到 ${payload.total_defects || 0} 个缺陷。`, "ok");
+        await loadHistory();
+      } catch (error) {
+        setStatus(imageStatus, error.message || "检测失败。", "danger");
+      } finally {
+        imageSubmit.disabled = false;
+      }
+    });
+
+    videoForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const file = videoFile.files[0];
+      if (!file) return;
+
+      document.querySelector("#original-title").textContent = "原视频";
+      document.querySelector("#result-title").textContent = "检测结果视频";
+      setMedia("#original-box", "video", URL.createObjectURL(file), "原视频");
+      setMedia("#result-box", "video", "", "检测结果视频");
+      thumbPanel.hidden = true;
+      currentPayload = null;
+      resetAnalysis("检测完成后可生成故障分析。");
+      videoSubmit.disabled = true;
+      setStatus(videoStatus, "视频检测中，稍等一下。");
+
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+        const conf = encodeURIComponent(videoConf.value || "0.45");
+        const res = await fetch(`/detect/video?conf=${conf}`, { method: "POST", body: formData });
+        const payload = await res.json();
+        if (!res.ok) throw new Error(payload.detail || "视频检测失败");
+        renderVideoResult(payload);
+        setStatus(videoStatus, `视频检测完成，处理 ${payload.processed_frames || 0} 帧，识别到 ${payload.total_defects || 0} 个缺陷。`, "ok");
+        await loadHistory();
+      } catch (error) {
+        setStatus(videoStatus, error.message || "视频检测失败。", "danger");
+      } finally {
+        videoSubmit.disabled = false;
+      }
+    });
+
+    thumbResults.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-kind='image']");
+      if (!button || !currentPayload) return;
+      const item = currentPayload.items[Number(button.dataset.index)];
+      showImageItem(item);
+    });
+
+    historyEl.addEventListener("click", async (event) => {
+      const button = event.target.closest("[data-id]");
+      if (!button) return;
+      const res = await fetch(`/report/${button.dataset.id}/json`);
+      const payload = await res.json();
+      renderPayload(payload);
+      setStatus(imageStatus, "已载入历史记录。", "ok");
+    });
+
+    analysisSubmit.addEventListener("click", async () => {
+      if (!currentPayload?.request_id) return;
+      analysisSubmit.disabled = true;
+      setStatus(analysisStatus, "故障分析生成中。");
+      try {
+        const res = await fetch(`/analyze/${currentPayload.request_id}`, { method: "POST" });
+        const analysis = await res.json();
+        if (!res.ok) throw new Error(analysis.detail || "故障分析失败");
+        currentPayload.analysis_report = analysis;
+        currentPayload.analysis_report_json_url = analysis.analysis_report_json_url;
+        currentPayload.analysis_report_markdown_url = analysis.analysis_report_markdown_url;
+        renderAnalysis(analysis);
+        renderLinks(currentPayload);
+        await loadHistory();
+      } catch (error) {
+        setStatus(analysisStatus, error.message || "故障分析失败。", "danger");
+      } finally {
+        analysisSubmit.disabled = !currentPayload?.request_id;
+      }
+    });
+
+    document.querySelector("#refresh-history").addEventListener("click", async (event) => {
+      event.preventDefault();
+      await loadHistory();
+    });
+
+    loadHistory().catch(() => {
+      historyEl.innerHTML = '<div class="placeholder">历史记录加载失败。</div>';
+    });
+  </script>
+</body>
+</html>

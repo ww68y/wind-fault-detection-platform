@@ -1,0 +1,735 @@
+% !TeX program = xelatex
+\documentclass[UTF8,zihao=-4,a4paper]{ctexrep}
+
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{geometry}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{fancyhdr}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,fit,shapes.geometric}
+
+\geometry{left=2.6cm,right=2.6cm,top=2.8cm,bottom=2.5cm,headheight=32pt}
+\setlength{\parindent}{2em}
+\setlength{\parskip}{0pt}
+\linespread{1.25}
+\emergencystretch=2em
+\graphicspath{{figures_from_docx/}{figures_cases/}{../paper_assets_msf_yolo/figures/}}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=black,
+  citecolor=black,
+  urlcolor=blue!50!black
+}
+
+\newcommand{\papertitlecn}{MSF-YOLO：面向风机叶片缺陷检测的多尺度形态感知与多模态推理系统}
+\newcommand{\papertitleen}{MSF-YOLO: Multi-scale Shape-aware Detection and Multimodal Reasoning System for Wind Turbine Blade Defects}
+\newcommand{\method}{MSF-YOLO}
+\newcommand{\dataset}{wind\_blade\_defect\_v05\_conservative}
+\newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\figsource}[1]{\caption*{\footnotesize 资料来源：#1}}
+\newcommand{\tablesource}[1]{\vspace{-0.4em}\caption*{\footnotesize 资料来源：#1}}
+
+\ctexset{
+  chapter = {
+    name = {第,章},
+    number = \arabic{chapter},
+    format = \centering\heiti\zihao{-2},
+    aftername = \quad,
+    beforeskip = 0pt,
+    afterskip = 20pt,
+    pagestyle = fancy
+  },
+  section = {
+    format = \heiti\zihao{-3},
+    afterskip = 0.6em
+  },
+  subsection = {
+    format = \heiti\zihao{-4},
+    afterskip = 0.4em
+  }
+}
+
+\renewcommand{\thefigure}{\thechapter-\arabic{figure}}
+\renewcommand{\thetable}{\thechapter-\arabic{table}}
+\captionsetup{font=small,labelfont=bf,labelsep=quad}
+\renewcommand{\contentsname}{目\quad 录}
+\renewcommand{\bibname}{参考文献}
+
+\fancypagestyle{fancy}{
+  \fancyhf{}
+  \fancyhead[C]{\songti\zihao{5}第二十一届中国研究生电子设计竞赛\\\papertitlecn}
+  \fancyfoot[C]{\thepage}
+  \renewcommand{\headrulewidth}{0.4pt}
+}
+\pagestyle{fancy}
+
+\newcommand{\cfootnote}[1]{\footnote{#1}}
+
+\begin{document}
+
+\begin{titlepage}
+\thispagestyle{empty}
+\begin{center}
+\vspace*{1.8cm}
+{\heiti\zihao{1} 第二十一届中国研究生电子设计竞赛}\\[0.6cm]
+{\heiti\zihao{1} 技术论文}\\[2.0cm]
+
+{\heiti\zihao{-2} 论文题目：}\\[0.6cm]
+{\heiti\zihao{-2}\papertitlecn}\\[0.6cm]
+{\heiti\zihao{-2}\papertitleen}\\[2.2cm]
+
+\begin{tabular}{>{\heiti\zihao{-3}}r p{8.2cm}}
+参赛单位： & \underline{\hspace{8cm}} \\[0.45cm]
+队伍名称： & \underline{\hspace{8cm}} \\[0.45cm]
+指导老师： & \underline{\hspace{8cm}} \\[0.45cm]
+参赛队员： & \underline{\hspace{8cm}} \\[0.45cm]
+完成时间： & \underline{\hspace{8cm}} \\
+\end{tabular}
+\end{center}
+\end{titlepage}
+
+\pagenumbering{gobble}
+\chapter*{摘\quad 要}
+\addcontentsline{toc}{chapter}{摘要}
+针对无人机巡检图像中风机叶片缺陷尺度小、形态细长、背景干扰强以及检测结果难以直接服务运维的问题，本文设计并实现了一套 \method 多尺度形态感知检测与多模态推理系统。系统以 YOLO 检测框架为基础，引入 P2 高分辨率检测头、Shape-Aware 定位权重、困难样本重加权和 Blade-Slice 重叠切片推理，提升对裂纹、孔洞、腐蚀和剥落等缺陷的适配能力；平台侧基于 FastAPI 和本地 Web 工作台完成图片、批量图片和视频关键帧检测。
+
+本文重点将多模态推理作为检测结果到巡检决策之间的转换环节。系统把原图、检测结果图、缺陷类别、置信度、坐标、风险规则和维修约束组织为结构化输入，生成故障摘要、风险等级、复检要求和维修建议。实验表明，V4 稳定基线在 test\_clean 上取得 0.8402 的 mAP50--95；严格消融中 P2+Shape 候选模型取得 0.8309 的 mAP50--95。本文据实给出性能边界，并展示从视觉识别到运维闭环的可运行原型。
+
+\noindent\textbf{关键词：} 风机叶片；缺陷检测；多模态推理；YOLO；小目标检测
+
+\clearpage
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+To address small defect scale, slender morphology, complex background interference and weak maintenance interpretability in UAV-based wind turbine blade inspection, this paper develops a \method multi-scale shape-aware detection and multimodal reasoning system. Based on the YOLO framework, the system introduces a P2 high-resolution head, Shape-Aware localization weights, hard-sample reweighting and Blade-Slice tiled inference. A FastAPI-based local platform supports image, batch-image and video-keyframe inspection.
+
+The core system contribution is a multimodal reasoning layer that converts detection outputs into inspection decisions. Original images, annotated images, defect categories, confidences, coordinates, risk rules and maintenance constraints are organized as structured inputs to generate fault summaries, risk levels, re-inspection requirements and maintenance suggestions. The V4 baseline reaches 0.8402 mAP50--95 on test\_clean, while the best strict-ablation candidate, P2+Shape, reaches 0.8309 mAP50--95. The system is therefore reported with explicit performance boundaries and a reproducible detection-to-maintenance workflow.
+
+\noindent\textbf{Keywords:} wind turbine blade; defect detection; multimodal reasoning; YOLO; small object detection
+
+\clearpage
+\tableofcontents
+\clearpage
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
+\chapter{作品难点与创新}
+
+\section{研究背景与工程意义}
+风力发电机组叶片通常长度大、曲面复杂，长期承受风沙冲刷、雨蚀、盐雾腐蚀和周期弯扭载荷。裂纹、孔洞、腐蚀、剥落等早期表面缺陷在初期往往只表现为局部颜色变化或细窄边缘，一旦持续扩展，可能引起气动效率下降、局部层合结构损伤、检修窗口缩短甚至停机风险。现有运维现场常采用无人机或长焦相机采集叶片图像，再由人员逐张复核。该流程虽然比人工登高检查安全，但在大批量图片筛查、缺陷位置标注、风险分级和报告归档方面仍然耗时。
+
+近两年，风机叶片缺陷检测研究开始从“单张图像识别”转向“无人机采集、模型识别、状态评估和维修决策”的一体化流程。例如，半监督缺陷检测、合成数据增强、无监督损伤检测以及大规模 UAV 巡检建模等工作，分别从标注成本、数据稀缺、异常发现和巡检规模化角度推进了该方向\cite{ye2024semi,zhang2025tia,jia2025tii,li2025mssp}。这些研究说明，单纯提高检测指标并不足以覆盖巡检业务的全部需求，模型输出还需要被翻译成运维人员能够使用的风险说明和处置建议。
+
+本作品面向上述场景，构建“缺陷识别、结构化报告、多模态推理和运维建议”一体化平台。检测模型负责回答“缺陷在哪里、属于哪一类、置信度多高”；多模态推理模块继续结合原始图像、检测结果图、缺陷类别、数量、空间分布、历史记录和维修规则，回答“该缺陷可能对应什么风险、是否需要复检、维修优先级如何”。这种分层设计便于保留 YOLO 检测的实时性，也让系统输出更接近巡检报告和维修工单。
+
+\section{关键难点}
+风机叶片缺陷检测与通用目标检测相比，具有更强的工程约束，如表 \ref{tab:difficulty} 所示。
+
+\begin{table}[H]
+  \centering
+  \caption{风机叶片缺陷检测难点与对应设计}
+  \label{tab:difficulty}
+  \small
+  \begin{tabularx}{\textwidth}{cXXX}
+    \toprule
+    序号 & 任务难点 & 具体表现 & 对应设计 \\
+    \midrule
+    1 & 小尺度缺陷易退化 & 远距离裂纹、小腐蚀和小孔洞在整图缩放后仅占少量像素 & P2 高分辨率检测头 \\
+    2 & 缺陷形态差异大 & 裂纹细长，腐蚀和剥落边界不规则 & Shape-Aware Loss \\
+    3 & 困难类别学习不足 & crack、corrosion 更易低置信度或漏检 & 困难样本重加权 \\
+    4 & 高分辨率推理细节损失 & 全图输入压缩局部缺陷纹理 & Blade-Slice 切片融合 \\
+    5 & 检测结果难以直接决策 & 检测框本身不能说明风险、原因和维修优先级 & 多模态故障推理与运维建议 \\
+    \bottomrule
+  \end{tabularx}
+  \tablesource{项目需求分析与实验记录整理}
+\end{table}
+
+\section{作品创新点}
+本文的创新点主要体现在算法设计、推理链路和工程平台三个层面。
+
+首先，算法层面提出 \method 多尺度形态感知检测链路，将 P2 小目标检测头、Shape-Aware 框级形态权重、困难样本重加权和 Blade-Slice 推理补偿整合到同一检测框架中。P2 分支保留浅层细节，Shape-Aware 权重显式照顾细长裂纹和小面积腐蚀，Blade-Slice 则作为高分辨率复核模式补偿整图缩放带来的纹理损失。
+
+其次，推理层面把多模态推理设计为系统主线，而不是检测后的附加说明。平台将视觉模态中的原图、框选结果图、关键帧，与结构化模态中的类别、置信度、坐标、时间、风险规则和维修约束统一组织，生成可追溯的故障分析。多模态推理的作用不是重新“猜测”图像类别，而是把已检测到的视觉证据转化为工程语义，例如裂纹扩展风险、腐蚀发展趋势、是否需要局部补拍、是否进入人工复核队列等。
+
+最后，工程层面构建本地 Web 检测平台，并把树莓派 3B+ 作为边缘采集与现场转发节点纳入硬件方案。系统支持图片检测、批量检测、视频关键帧检测、历史记录、报告生成、风险分级、故障解释和维修工单生成，形成从现场采集到后台推理再到运维闭环的完整链路。
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.92\textwidth]{image1.png}
+  \caption{\method 研究总体流程}
+  \label{fig:research_flow}
+  \figsource{由项目论文初稿中的流程图抽取并用于 LaTeX 版论文}
+\end{figure}
+
+\chapter{方案论证与总体设计}
+
+\section{总体方案}
+系统整体采用“边缘采集层、感知检测层、结构化报告层、多模态推理层、运维闭环层”的五层架构。边缘采集层以树莓派 3B+、相机和现场供电模块为核心，负责图像或视频片段采集、时间戳记录、文件暂存和网络转发；感知检测层负责图片和视频关键帧中的缺陷识别；结构化报告层将检测结果整理为 JSON、Markdown 和网页报告；多模态推理层融合图像检测结果、缺陷知识和运维规则，生成故障摘要、可能原因、风险影响、复检要求和停机建议；运维闭环层进一步生成维修工单和派工记录。
+
+在部署方式上，本作品采用“树莓派现场节点 + 本地工作站推理服务 + Web 工作台”的组合。树莓派 3B+ 的计算能力适合完成采集控制、轻量预处理和文件转发；YOLO 检测、多模态推理和报告生成主要在本地工作站完成。这样划分的原因是：一方面，风机叶片巡检图像分辨率高，直接在树莓派 3B+ 上运行完整 YOLO 推理会受到算力和内存限制；另一方面，现场节点不承担重模型推理后，系统更容易保证采集稳定性、断点续传和后续模型替换。
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.92\textwidth]{image3.png}
+  \caption{\method 总体框架}
+  \label{fig:overall_framework}
+  \figsource{由项目论文初稿中的总体框架图抽取}
+\end{figure}
+
+\section{技术路线论证}
+风机叶片巡检图像具有较高分辨率和较强场景变化，若采用两阶段检测器，虽然定位能力较强，但部署复杂度和推理开销较大。近两年实时目标检测研究继续围绕端到端检测、实时 DETR 和 YOLO 结构改进展开，例如 RT-DETR、YOLOv9 和 YOLOv10 分别从实时 Transformer 检测、可编程梯度信息和端到端实时检测角度提升检测效率与精度\cite{zhao2024rtdetr,wang2024yolov9,wang2024yolov10}。考虑到本项目需要快速接入训练、评估和 Web 推理，本作品以 Ultralytics YOLO 为基础检测框架\cfootnote{Ultralytics YOLO 文档与实现，https://docs.ultralytics.com/。}，在结构、损失、采样和推理流程上进行任务适配。
+
+多模态推理并不是替代 YOLO 检测，而是建立在检测结果之上的解释与决策层。YOLO 输出“哪里有缺陷、是什么类别、置信度是多少”，多模态推理模块进一步回答“该缺陷可能意味着什么、风险等级如何、是否需要复检或维修”。当前视觉语言模型和多模态评测工作表明，模型已经能够在图像、文本和结构化信息之间进行较复杂的语义对齐与推理\cite{chen2024internvl,yue2024mmmu,ravi2025sam2}。但在工程巡检中，直接让大模型自由判断缺陷风险并不稳妥，因此本文采用“检测证据约束 + 规则校验 + 多模态文本生成”的方式：先由 YOLO 给出可量化视觉证据，再由风险规则限定输出范围，最后生成面向运维人员的解释文字。
+
+\section{系统总体流程}
+系统输入包括单张图像、批量图像或巡检视频。对于现场采集数据，树莓派 3B+ 节点负责将相机图像按任务编号保存，并通过有线网络或 Wi-Fi 传输到本地推理服务。对于图像输入，平台保存上传文件后调用 YOLO 模型推理，渲染检测结果图，并生成检测报告。对于视频输入，平台按固定间隔或关键帧策略抽帧检测，输出缺陷帧、关键帧截图和视频检测报告。
+
+检测结束后，系统不会只停留在“画框”结果，而是继续将 \code{detection\_report.json} 作为多模态推理入口。该报告包含文件名、请求 ID、检测数量、类别统计、每个缺陷的框坐标和置信度；同时，系统保留原图和结果图路径，使推理模块能够在文本证据和视觉证据之间建立对应关系。分析模块读取这些内容后，结合风险规则和缺陷知识生成多模态分析报告，并将其中的维修建议传递给工单模块。
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}[
+    node distance=0.9cm and 0.9cm,
+    block/.style={rectangle, draw=blue!55!black, fill=blue!5, rounded corners=2pt, align=center, minimum width=2.5cm, minimum height=0.75cm},
+    reason/.style={rectangle, draw=green!45!black, fill=green!8, rounded corners=2pt, align=center, minimum width=2.8cm, minimum height=0.75cm},
+    arrow/.style={-{Latex[length=2mm]}, thick}
+  ]
+    \node[block] (input) {图片/视频\\巡检数据};
+    \node[block, right=of input] (det) {YOLO 缺陷检测\\类别/框/置信度};
+    \node[block, right=of det] (report) {结构化报告\\JSON/Markdown};
+    \node[reason, below=of report] (reason) {多模态推理\\原因/风险/建议};
+    \node[reason, left=of reason] (order) {维修工单\\复检与派工};
+    \node[reason, left=of order] (human) {人工复核\\样本闭环};
+    \draw[arrow] (input) -- (det);
+    \draw[arrow] (det) -- (report);
+    \draw[arrow] (report) -- (reason);
+    \draw[arrow] (reason) -- (order);
+    \draw[arrow] (order) -- (human);
+    \draw[arrow] (human.north) to[bend right=25] (det.south);
+  \end{tikzpicture}
+  \caption{检测与多模态推理闭环流程}
+  \label{fig:multimodal_loop}
+  \figsource{根据项目 FastAPI 接口、analysis 模块和 maintenance 模块整理绘制}
+\end{figure}
+
+\chapter{原理分析与硬件电路图}
+
+\section{网络结构原理}
+\method 在 YOLOv8n 检测结构基础上加入 P2 高分辨率检测分支。主干网络逐级提取 P2、P3、P4 和 P5 特征，颈部网络通过上采样、拼接和 C2f 模块完成多尺度融合，最终由 Detect 层在四个尺度上预测缺陷框。
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.95\textwidth]{image5.png}
+  \caption{\method 精确网络结构}
+  \label{fig:precise_network}
+  \figsource{由项目配置文件 configs/yolov8n-p2-wind.yaml 和论文初稿图整理}
+\end{figure}
+
+设第 $l$ 个检测层特征图为 $F_l$，对应步长为 $s_l$，输入图像尺寸为 $W\times H$，则
+\begin{equation}
+  F_l\in \mathbb{R}^{C_l\times \lceil H/s_l\rceil \times \lceil W/s_l\rceil},
+  \quad s_l\in\{4,8,16,32\}.
+\end{equation}
+目标框 $b$ 在第 $l$ 层上的响应单元数可近似表示为
+\begin{equation}
+  N_{cell}(b,l)=
+  \left\lceil\frac{w_b}{s_l}\right\rceil
+  \left\lceil\frac{h_b}{s_l}\right\rceil .
+\end{equation}
+当 $s_l$ 从 8 降至 4 时，同一小目标在特征图上的响应范围增大，有助于细小裂纹和小孔洞的定位。
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.88\textwidth]{image7.png}
+  \caption{P2 小目标检测头结构}
+  \label{fig:p2_head}
+  \figsource{由项目论文初稿中的 P2 结构图抽取}
+\end{figure}
+
+\section{Shape-Aware Loss 原理}
+风机叶片缺陷具有明显形态差异。裂纹通常呈细长结构，腐蚀和剥落呈不规则区域，小孔洞面积较小。如果所有目标在框回归损失中权重相同，模型容易偏向面积更大或形态更规则的目标。本文根据面积占比和长宽比构建形态权重 $q_i$。
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.9\textwidth]{image9.png}
+  \caption{Shape-Aware Loss 计算结构}
+  \label{fig:shape_structure}
+  \figsource{由项目论文初稿中的损失结构图抽取}
+\end{figure}
+
+对第 $i$ 个目标框，面积占比和长宽比分别为
+\begin{equation}
+  A_i=\frac{w_ih_i}{WH},\qquad
+  R_i=\max\left(\frac{w_i}{h_i},\frac{h_i}{w_i}\right).
+\end{equation}
+小面积项与细长项定义为
+\begin{equation}
+  S_i=\operatorname{clip}\left(\frac{a_0-A_i}{a_0},0,1\right),\qquad
+  E_i=\operatorname{clip}\left(\frac{R_i-r_0}{r_0},0,1\right).
+\end{equation}
+形态权重为
+\begin{equation}
+  q_i=\min(1+\alpha S_i+\beta E_i,q_{max}).
+\end{equation}
+在项目实现中，$a_0=0.012$、$r_0=3.0$、$\alpha=0.35$、$\beta=0.25$、$q_{max}=1.7$。加权后的框回归损失和 DFL 损失为
+\begin{equation}
+  \mathcal{L}^{shape}_{box}
+  =
+  \frac{\sum_i (1-\operatorname{CIoU}_i)t_iq_i}{\sum_i t_i},
+  \qquad
+  \mathcal{L}^{shape}_{dfl}
+  =
+  \frac{\sum_i \operatorname{DFL}_i t_iq_i}{\sum_i t_i}.
+\end{equation}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.9\textwidth]{image11.png}
+  \caption{Shape-Aware Loss 权重计算流程}
+  \label{fig:shape_flow}
+  \figsource{由项目论文初稿中的权重流程图抽取}
+\end{figure}
+
+\section{Blade-Slice 推理原理}
+Blade-Slice 是推理阶段的尺度补偿策略。该模块保留全图检测分支，同时对高分辨率图像进行重叠切片，在局部视野中检测小目标，再将切片结果映射回原图坐标并进行 NMS 融合。
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.9\textwidth]{image13.png}
+  \caption{Blade-Slice 切片融合结构}
+  \label{fig:blade_structure}
+  \figsource{由项目论文初稿中的 Blade-Slice 结构图抽取}
+\end{figure}
+
+设切片边长为 $L$、重叠率为 $\rho$，滑动步长为
+\begin{equation}
+  d=\lfloor L(1-\rho)\rfloor .
+\end{equation}
+默认参数为 $L=640$、$\rho=0.25$，因此 $d=480$。切片检测框回映射后与全图检测结果融合：
+\begin{equation}
+  \mathcal{B}_{fused}
+  =
+  \operatorname{NMS}
+  \left(
+    \mathcal{B}_{full}\cup\mathcal{B}_{slice},\tau
+  \right).
+\end{equation}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.9\textwidth]{image15.png}
+  \caption{Blade-Slice 重叠切片融合推理流程}
+  \label{fig:blade_flow}
+  \figsource{由项目论文初稿中的切片推理流程图抽取}
+\end{figure}
+
+\section{树莓派 3B+ 硬件架构与电路连接}
+本作品的硬件部分采用树莓派 3B+ 作为现场采集与边缘转发节点。树莓派 3B+ 搭载 1.4 GHz 64 位四核处理器，支持 2.4 GHz/5 GHz 无线网络、以太网、USB、CSI 摄像头接口和 40 针 GPIO\cfootnote{Raspberry Pi 3 Model B+ 官方产品资料，https://www.raspberrypi.com/products/raspberry-pi-3-model-b-plus/。}。在本系统中，它主要承担四类任务：第一，控制相机采集叶片图像或短视频；第二，对采集文件进行命名、缓存和压缩；第三，通过 HTTP 或局域网文件传输方式上传至本地推理工作站；第四，驱动状态指示灯、蜂鸣器和按键等简单外设，便于现场人员判断采集状态。
+
+需要说明的是，树莓派 3B+ 的定位不是完整 YOLO 大模型推理服务器。对于 640 像素输入的轻量模型，树莓派可以进行低帧率演示或离线测试；但本项目的主流程仍将 YOLO 检测、多模态推理和报告生成放在本地工作站完成。这样可以避免现场节点因重模型推理造成发热、掉帧和响应不稳定，同时保留后续将模型量化后迁移到边缘端的接口。
+
+\begin{figure}[H]
+  \centering
+  \resizebox{\textwidth}{!}{
+  \begin{tikzpicture}[
+    node distance=0.95cm and 1.05cm,
+    pi/.style={rectangle, draw=blue!55!black, fill=blue!7, rounded corners=2pt, align=center, minimum width=3.2cm, minimum height=1.15cm},
+    dev/.style={rectangle, draw=black!65, fill=gray!8, rounded corners=2pt, align=center, minimum width=2.65cm, minimum height=0.8cm},
+    power/.style={rectangle, draw=red!60!black, fill=red!5, rounded corners=2pt, align=center, minimum width=2.65cm, minimum height=0.8cm},
+    signal/.style={-{Latex[length=2mm]}, thick},
+    pwr/.style={-{Latex[length=2mm]}, thick, red!65!black},
+    data/.style={-{Latex[length=2mm]}, thick, blue!60!black}
+  ]
+    \node[pi] (pi) {Raspberry Pi 3B+\\采集控制/缓存/上传};
+    \node[power, left=1.4cm of pi] (supply) {5V/2.5A 电源\\稳压供电};
+    \node[dev, above left=0.75cm and 1.2cm of pi] (cam) {CSI/USB 相机\\叶片图像采集};
+    \node[dev, above=of pi] (storage) {microSD/USB 存储\\图片/视频缓存};
+    \node[dev, above right=0.75cm and 1.2cm of pi] (net) {以太网/Wi-Fi\\上传检测任务};
+    \node[dev, right=1.4cm of pi] (server) {本地工作站\\YOLO 与多模态推理};
+    \node[dev, below right=0.75cm and 1.2cm of pi] (web) {浏览器工作台\\报告/工单查看};
+    \node[dev, below=of pi] (gpio) {GPIO 外设\\LED/蜂鸣器/按键};
+    \draw[pwr] (supply) -- node[above]{5V/GND} (pi);
+    \draw[data] (cam) -- node[above, sloped]{CSI/USB} (pi);
+    \draw[data] (pi) -- node[right]{文件缓存} (storage);
+    \draw[data] (pi) -- node[above, sloped]{HTTP/文件上传} (net);
+    \draw[data] (net) -- node[above]{局域网} (server);
+    \draw[signal] (pi) -- node[right]{GPIO} (gpio);
+    \draw[data] (server) -- node[right, sloped]{API/静态页面} (web);
+  \end{tikzpicture}}
+  \caption{基于树莓派 3B+ 的硬件电路与数据连接示意图}
+  \label{fig:hardware_link}
+  \figsource{根据树莓派 3B+ 官方接口能力与本项目部署方式绘制}
+\end{figure}
+
+硬件连接关系如表 \ref{tab:hardware_io} 所示。电源部分采用 5V 稳压输入，GND 与外设共地；相机可根据安装方式选择 CSI 摄像头或 USB 摄像头；状态 LED 用于显示采集、上传和错误状态；蜂鸣器用于上传失败或检测完成提醒；按键用于现场手动触发采集。若安装在无人机或叶片附近固定支架上，树莓派外壳应增加防尘、防水和减振设计，电源线与相机线需要固定，避免飞行或风振造成接口松动。
+
+\begin{table}[H]
+  \centering
+  \caption{树莓派 3B+ 主要硬件接口分配}
+  \label{tab:hardware_io}
+  \small
+  \begin{tabularx}{\textwidth}{l l X}
+    \toprule
+    接口/引脚 & 连接对象 & 作用说明 \\
+    \midrule
+    5V、GND & 稳压电源模块 & 为树莓派与低功耗外设供电，电源需保证电流裕量 \\
+    CSI 或 USB & 摄像头模块 & 采集风机叶片图像、视频片段或复检局部照片 \\
+    USB / microSD & 本地存储 & 缓存未上传文件、日志和采集任务编号 \\
+    Ethernet / Wi-Fi & 本地工作站 & 上传图像并接收检测任务状态 \\
+    GPIO17 & 状态 LED & 常亮表示待机，闪烁表示采集中或上传中 \\
+    GPIO27 & 蜂鸣器 & 上传失败、检测完成或异常状态提示 \\
+    GPIO22 & 手动触发按键 & 现场人员触发单次采集或复检采集 \\
+    \bottomrule
+  \end{tabularx}
+  \tablesource{根据树莓派 3B+ 40 针 GPIO 与本项目现场采集需求整理}
+\end{table}
+
+从信号流看，树莓派节点先完成图像采集和本地缓存，再将文件路径、采集时间、设备编号和可选位置信息打包为任务元数据。工作站接收任务后调用检测接口，生成带框结果图和检测报告；多模态推理模块读取报告和图像路径，输出风险分析与维修建议。该链路将“现场采集”和“后台推理”分开，便于调试，也便于在不同硬件条件下替换相机、网络或推理服务器。
+
+\chapter{软件设计与多模态推理流程}
+
+\section{软件总体结构}
+项目采用 Python 工程结构，核心目录包括 \code{src/wind\_fault/api}、\code{model}、\code{video}、\code{reports}、\code{analysis} 和 \code{maintenance}。软件设计遵循一个原则：检测、分析和工单分别保存中间结果，不把全部逻辑压在单一接口中。这样做虽然文件数量稍多，但便于排查某次检测的原图、结果图、JSON 报告、分析报告和维修单，也便于论文复现实验。
+
+\begin{table}[H]
+  \centering
+  \caption{软件模块划分}
+  \label{tab:software_modules}
+  \small
+  \begin{tabularx}{\textwidth}{lX}
+    \toprule
+    模块 & 功能 \\
+    \midrule
+    \code{api/app.py} & FastAPI 服务、上传接口、报告页面和历史记录 \\
+    \code{model/yolo\_runner.py} & Ultralytics YOLO 训练与推理封装 \\
+    \code{video/video\_detector.py} & 视频抽帧检测、关键帧与结果视频生成 \\
+    \code{reports/} & 检测报告、错误挖掘和综合报告生成 \\
+    \code{analysis/} & 多模态故障分析、风险解释和提示词构建 \\
+    \code{maintenance/} & 维修工单、派工记录和建议任务生成 \\
+    \bottomrule
+  \end{tabularx}
+  \tablesource{项目源码目录结构}
+\end{table}
+
+API 层由 FastAPI 提供本地服务，主页用于上传图片或视频，接口用于启动检测、读取历史记录和生成分析报告。模型层封装 Ultralytics YOLO，保证训练权重、阈值、输入尺寸和输出格式在 Web 端一致。报告层把检测输出写成机器可读的 \code{json} 和人工可读的 \code{md}，多模态推理层只读取这些报告，不直接依赖前端页面状态。维修单模块再根据风险等级、缺陷类别和多模态建议生成派工内容。
+
+软件流程中每一步都留下文件证据。例如一次单图检测会在运行目录下保存上传原图、渲染后的检测结果图、\code{detection\_report.json}、\code{detection\_report.md}、可选的 \code{analysis\_report.json} 和 \code{maintenance\_order.json}。这种设计适合竞赛答辩和论文复核，因为可以从最终建议追溯到原始检测框和置信度。
+
+\section{检测接口流程}
+图片检测接口接收用户上传文件后，首先建立请求 ID 和运行目录，再保存上传文件。随后系统调用模型推理，得到类别、置信度和 \code{xyxy} 坐标，渲染带框结果图，并写入检测报告。报告内容包括请求 ID、检测模式、文件名称、缺陷总数、类别统计、缺陷框坐标、风险等级和处理建议。批量检测与单图检测共用推理链路，区别在于输入源由单张图片变为上传目录，报告中会按图片逐项保存检测明细。
+
+视频检测接口先读取视频总帧数和帧率，再按固定间隔抽帧检测。对于检测到缺陷的帧，系统保存关键帧截图，并记录帧号、时间戳、缺陷数量和最高置信度。视频报告不追求逐帧完整推理，而是面向巡检复核：优先把疑似缺陷帧、连续出现的缺陷帧和高置信度缺陷帧整理出来，减少人工回看整段视频的时间。
+
+\section{多模态推理设计}
+多模态推理是本文系统设计的重点。项目中的 \code{analysis} 模块由报告读取、风险评估、提示词构建、离线分析和视觉语言模型调用五部分组成。其输入不是一张孤立图片，而是一组有约束的多模态证据：
+
+\begin{equation}
+  \mathcal{I}_{mm}=\{X_v,X_d,X_r,X_m\}.
+\end{equation}
+其中，$X_v$ 表示原图、结果图和视频关键帧；$X_d$ 表示检测框、类别、置信度、帧号和坐标；$X_r$ 表示风险规则，包括裂纹、孔洞、腐蚀、剥落的基础风险和数量提升规则；$X_m$ 表示运维约束，包括复检、降载、停机、派工团队和建议时限。多模态推理不是单独依赖语言模型生成结论，而是先由规则层给出可解释的风险边界，再由文本生成层组织成巡检报告。
+
+\subsection{结构化输入组织}
+对于图片任务，系统同时选取原图和结果图作为视觉证据，并在提示词中写入每个缺陷的类别、置信度和边框坐标。对于视频任务，系统优先选择缺陷数量多、最高置信度高的关键帧，并在提示词中保留帧号和时间戳。这样做的目的有两点：第一，让多模态模型看到图像证据，而不是只读检测结果；第二，让输出能够追溯到具体图片或具体视频时间点，方便人工复核。
+
+\subsection{风险规则约束}
+风险引擎采用确定性规则先给出基础等级。裂纹和孔洞默认进入中高风险，剥落进入中风险，腐蚀进入低风险；当一次任务中缺陷总数达到 3 个及以上时，风险等级提升一级；当同一任务中出现多种缺陷类型时，再提升一级；当多个高置信度缺陷同时出现时，按高风险处理；当最低置信度低于 0.60 时，系统标记为必须人工复核。表 \ref{tab:risk_rules} 给出了主要规则。
+
+\begin{table}[H]
+  \centering
+  \caption{多模态推理中的风险规则约束}
+  \label{tab:risk_rules}
+  \small
+  \begin{tabularx}{\textwidth}{l l X}
+    \toprule
+    规则来源 & 触发条件 & 推理作用 \\
+    \midrule
+    类别基础风险 & crack、hole、spalling、corrosion & 给出缺陷的初始风险等级，避免文本模型任意改变类别含义 \\
+    数量规则 & 缺陷数量 $\ge 3$ & 表示同一叶片区域可能存在集中损伤，风险提升一级 \\
+    多类别规则 & 同一任务出现两类及以上缺陷 & 表示损伤形态复杂，建议提高复核优先级 \\
+    高置信度规则 & 多个检测结果置信度 $\ge 0.90$ & 缺陷证据较强，按高风险或优先复核处理 \\
+    低置信度规则 & 任一检测结果置信度 $<0.60$ & 明确要求人工复核，避免误检直接形成维修结论 \\
+    \bottomrule
+  \end{tabularx}
+  \tablesource{项目 \code{risk\_engine.py} 规则整理}
+\end{table}
+
+\subsection{提示词与视觉语言模型接口}
+提示词构建模块把检测报告写成工程师视角的任务描述，其中明确要求：YOLO 检测结果是主要依据，不得编造未检测到的缺陷；如果检测框落在文字、水印、边缘阴影、反光或背景区域，应提示人工复核；输出必须为 JSON，字段内容包括故障摘要、故障现象、可能原因、风险影响、运维建议、复检要求、停机建议和人工复核提示。
+
+平台默认使用规则型离线分析器保证无网络、无模型密钥时仍可运行；当配置视觉语言模型提供方、接口地址、模型名称和 API Key 后，\code{vlm\_client.py} 可以调用 OpenAI-compatible 视觉语言模型接口，并把原图、结果图或关键帧以图像输入传入模型。若模型调用失败，系统自动回退到规则型分析结果。因此，多模态推理在工程上具有可用的下限，也保留了接入更强视觉语言模型的上限。
+
+\subsection{多模态输出与维修单映射}
+多模态推理输出不会直接覆盖检测结果，而是作为维修单生成的输入之一。维修单模块读取风险等级、缺陷类别、缺陷数量和分析建议，生成优先级、派工团队、建议时限、工具材料、安全控制和验收标准。例如，裂纹类缺陷会优先分配到叶片结构检修组，并要求复核裂纹长度、方向、端点和是否跨越结构受力区域；腐蚀类缺陷会分配给防腐涂层处理组，并要求确认腐蚀面积、深度和涂层失效范围。这样，多模态推理结果最终落到可执行任务，而不只是生成一段描述性文字。
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}[
+    node distance=0.8cm and 0.75cm,
+    block/.style={rectangle, draw=blue!55!black, fill=blue!5, rounded corners=2pt, align=center, minimum width=2.35cm, minimum height=0.72cm},
+    outblock/.style={rectangle, draw=green!45!black, fill=green!8, rounded corners=2pt, align=center, minimum width=2.55cm, minimum height=0.72cm},
+    arrow/.style={-{Latex[length=2mm]}, thick}
+  ]
+    \node[block] (img) {图像/关键帧};
+    \node[block, below=of img] (det) {类别/框/置信度};
+    \node[block, below=of det] (rule) {风险规则\\缺陷知识};
+    \node[outblock, right=1.5cm of det] (reason) {多模态推理器\\Prompt/规则融合};
+    \node[outblock, right=1.5cm of reason] (summary) {故障摘要};
+    \node[outblock, above=of summary] (risk) {风险等级};
+    \node[outblock, below=of summary] (maint) {运维建议};
+    \draw[arrow] (img) -- (reason);
+    \draw[arrow] (det) -- (reason);
+    \draw[arrow] (rule) -- (reason);
+    \draw[arrow] (reason) -- (summary);
+    \draw[arrow] (reason) -- (risk);
+    \draw[arrow] (reason) -- (maint);
+  \end{tikzpicture}
+  \caption{多模态推理模块输入输出关系}
+  \label{fig:mm_reason}
+  \figsource{根据项目 analysis 模块和 report 结构整理绘制}
+\end{figure}
+
+\section{报告与运维闭环}
+当检测任务完成后，平台会生成 \code{detection\_report.json} 和 Markdown 报告。用户可进一步调用 \code{POST /analyze/\{request\_id\}} 生成分析报告，系统再根据风险等级和缺陷类型生成维修工单。完整闭环包括四类文件：检测报告记录“看到了什么”，分析报告说明“这意味着什么”，维修单给出“谁去处理、多久处理、带什么工具、如何验收”，综合报告则把上述文件路径统一索引。
+
+该闭环对后续论文和系统迭代也有价值。若人工复核发现误检，可以从维修单回溯到分析报告、检测报告和原始图像，进一步加入 hard case 数据；若某类缺陷风险规则不合理，可以只修改 \code{risk\_engine.py} 或维修单映射，而不必重新训练检测模型。系统因此形成了“检测结果、人工复核、样本更新、模型再训练”的迭代入口。
+
+\chapter{系统测试与结果分析}
+
+\section{测试数据与评价指标}
+实验采用 \dataset 数据集，类别统一为 crack、hole、spalling 和 corrosion。数据划分如表 \ref{tab:dataset_split} 所示。
+
+\begin{table}[H]
+  \centering
+  \caption{数据集划分统计}
+  \label{tab:dataset_split}
+  \begin{tabular}{cccc}
+    \toprule
+    数据划分 & 图像数量 & 空标注图像数量 & 用途 \\
+    \midrule
+    train & 9136 & 786 & 模型训练 \\
+    val & 571 & 17 & 训练过程验证 \\
+    test\_clean & 543 & 18 & 干净测试集评估 \\
+    \bottomrule
+  \end{tabular}
+  \tablesource{项目数据集构建脚本和实验记录}
+\end{table}
+
+主要指标包括 Precision、Recall、mAP50 和 mAP50--95，并额外统计空标注背景图误检数 $FP_{bg}$。其中
+\begin{equation}
+  Precision=\frac{TP}{TP+FP},\qquad
+  Recall=\frac{TP}{TP+FN}.
+\end{equation}
+
+\section{消融实验结果}
+表 \ref{tab:ablation_result} 给出了 V4 稳定基线和各候选模型的总体指标。可以看到，V4 baseline 在 test\_clean 上达到 0.8402 的 mAP50--95；候选模型中 P2+Shape 最优，为 0.8309，但仍未超过 V4。
+
+\begin{table}[H]
+  \centering
+  \caption{训练侧消融总体指标}
+  \label{tab:ablation_result}
+  \small
+  \resizebox{\textwidth}{!}{
+  \begin{tabular}{lcccccc}
+    \toprule
+    模型 & val P & val R & val mAP50--95 & test P & test R & test mAP50--95 \\
+    \midrule
+    V4 baseline & 0.9599 & 0.9411 & 0.8094 & 0.9577 & 0.9795 & 0.8402 \\
+    YOLO + P2 & 0.9358 & 0.9097 & 0.7941 & 0.9663 & 0.9493 & 0.8287 \\
+    YOLO + P2 + Shape & 0.9137 & 0.9371 & 0.7990 & 0.9670 & 0.9581 & 0.8309 \\
+    YOLO + P2 + Hard & 0.9423 & 0.9163 & 0.7897 & 0.9612 & 0.9492 & 0.8290 \\
+    YOLO + P2 + Shape + Hard & 0.9125 & 0.9392 & 0.7940 & 0.9516 & 0.9488 & 0.8257 \\
+    \bottomrule
+  \end{tabular}}
+  \tablesource{\code{strict\_ablation\_metrics.csv} 与项目实验记录}
+\end{table}
+
+该结果说明，新增模块已经形成完整实现链路，但当前训练策略下尚不能替代 V4 稳定基线。论文结论应强调模块作用边界，而不宜写成“全面提升”。
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.68\textwidth]{image17.png}
+  \caption{严格消融候选组雷达对比}
+  \label{fig:ablation_radar}
+  \figsource{由项目论文初稿中的消融雷达图抽取}
+\end{figure}
+
+\section{分类别结果}
+从 test\_clean 分类别 mAP50--95 看，V4 baseline 在 crack、hole 和 corrosion 上仍具有优势，spalling 类各组差异较小。corrosion 指标相对较低，是后续优化重点。
+
+\begin{table}[H]
+  \centering
+  \caption{test\_clean 分类别 mAP50--95}
+  \label{tab:class_result}
+  \small
+  \begin{tabular}{lcccc}
+    \toprule
+    模型 & crack & hole & spalling & corrosion \\
+    \midrule
+    V4 baseline & 0.8613 & 0.8945 & 0.9720 & 0.6331 \\
+    YOLO + P2 & 0.8524 & 0.8913 & 0.9739 & 0.5974 \\
+    YOLO + P2 + Shape & 0.8408 & 0.8893 & 0.9719 & 0.6215 \\
+    YOLO + P2 + Hard & 0.8452 & 0.8878 & 0.9730 & 0.6102 \\
+    YOLO + P2 + Shape + Hard & 0.8538 & 0.8767 & 0.9697 & 0.6024 \\
+    \bottomrule
+  \end{tabular}
+  \tablesource{\code{strict\_ablation\_class\_metrics\_test\_clean.csv}}
+\end{table}
+
+\section{Blade-Slice 测试}
+Blade-Slice 在 test\_clean 上的结果如表 \ref{tab:blade_slice} 所示。与普通推理相比，切片推理在部分参数下略微提高 Recall，但误检数明显增加。因此，该模块更适合被设计成高分辨率小目标复核模式，而不是默认推理方式。
+
+\begin{table}[H]
+  \centering
+  \caption{Blade-Slice 在 test\_clean 上的参数扫描结果}
+  \label{tab:blade_slice}
+  \begin{tabular}{lcccc}
+    \toprule
+    推理模式 & Recall & Precision & Missed & FP \\
+    \midrule
+    normal & 0.8883 & 0.9036 & 66 & 56 \\
+    tile 512 & 0.8917 & 0.8682 & 64 & 80 \\
+    tile 640 & 0.8900 & 0.8723 & 65 & 77 \\
+    tile 768 & 0.8917 & 0.8798 & 64 & 72 \\
+    tile 896 & 0.8917 & 0.8872 & 64 & 67 \\
+    \bottomrule
+  \end{tabular}
+  \tablesource{\code{blade\_slice\_scan\_metrics.csv}}
+\end{table}
+
+\section{小目标子集测试}
+小目标子集评估进一步检验了 \method 在细小缺陷上的表现。结果显示，在 area $\le 0.01$ 的 test\_clean 子集上，V6 mAP50--95 为 0.7720，略高于 A0-640；但在 area $\le 0.005$ 的 test\_clean 子集上，A0-640 仍优于 V6。该现象说明 \method 对部分小目标场景有效，但普通 YOLOv8n-640 仍是强竞争基线。
+
+\begin{table}[H]
+  \centering
+  \caption{小目标子集 mAP50--95 对比}
+  \label{tab:small_object}
+  \small
+  \begin{tabular}{llcccc}
+    \toprule
+    阈值 & Split & V6 & A0-640 & B0-416 & C0-320 \\
+    \midrule
+    area $\le 0.01$ & val & 0.5249 & 0.5283 & 0.5327 & 0.5181 \\
+    area $\le 0.01$ & test\_clean & 0.7720 & 0.7691 & 0.7536 & 0.7496 \\
+    area $\le 0.005$ & val & 0.4768 & 0.5131 & 0.4865 & 0.4611 \\
+    area $\le 0.005$ & test\_clean & 0.7443 & 0.7607 & 0.7329 & 0.6973 \\
+    \bottomrule
+  \end{tabular}
+  \tablesource{\code{small\_object\_eval.csv}}
+\end{table}
+
+\section{平台运行验证}
+本地 Web 平台已完成运行验证。用户在浏览器中上传 \code{crack\_388.jpg} 后，系统返回请求 ID、文件名、缺陷数量、检测状态和检测结果图。该样例检测到 1 个 crack 缺陷，置信度为 0.968，检测框覆盖叶片表面的细长裂纹区域。图 \ref{fig:case_crack} 展示了原图与检测结果。该案例说明，平台能够把单张巡检图像从上传、推理、渲染到报告生成完整跑通。
+
+\begin{figure}[H]
+  \centering
+  \begin{subfigure}{0.47\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{case_crack_388_original.jpg}
+    \caption{原始叶片图像}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}{0.47\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{case_crack_388_pred.jpg}
+    \caption{检测结果图}
+  \end{subfigure}
+  \caption{平台裂纹检测运行案例}
+  \label{fig:case_crack}
+  \figsource{本项目 FastAPI 检测接口输出}
+\end{figure}
+
+除裂纹样例外，平台也对 \code{corrosion\_112.jpg} 完成了运行验证。该样例检测到 1 个 corrosion 缺陷，置信度为 0.895，检测区域位于叶片表面局部腐蚀痕迹附近，如图 \ref{fig:case_corrosion} 所示。由于腐蚀类缺陷在数据集中形态差异较大、颜色与背景容易混淆，本文在测试分析中单独保留该类案例，用于说明后续需要持续优化的方向。
+
+\begin{figure}[H]
+  \centering
+  \begin{subfigure}{0.47\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{case_corrosion_112_original.jpg}
+    \caption{原始叶片图像}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}{0.47\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{case_corrosion_112_pred.jpg}
+    \caption{检测结果图}
+  \end{subfigure}
+  \caption{平台腐蚀检测运行案例}
+  \label{fig:case_corrosion}
+  \figsource{本项目 FastAPI 检测接口输出}
+\end{figure}
+
+\section{多模态推理与维修单验证}
+多模态推理模块在检测结果基础上生成故障摘要、风险等级和维修建议。表 \ref{tab:mm_case} 展示了两个运行样例在推理层的处理差异。对于 \code{crack\_388.jpg}，系统根据 crack 的基础风险和高置信度检测结果，将其判定为需要优先人工复核的中高风险缺陷，维修单优先级进入 P0 紧急；对于 \code{corrosion\_112.jpg}，系统给出低风险结论，但仍建议确认腐蚀面积、深度和防护层失效范围。
+
+\begin{table}[H]
+  \centering
+  \caption{平台样例的多模态推理结果}
+  \label{tab:mm_case}
+  \small
+  \begin{tabularx}{\textwidth}{l c c c X}
+    \toprule
+    样例 & 检测类别 & 置信度 & 风险/优先级 & 多模态推理输出重点 \\
+    \midrule
+    \code{crack\_388.jpg} & crack & 0.968 & 中高风险 / P0 & 复核裂纹长度、方向和端点，必要时补拍局部高清图，评估是否降载或停机检查 \\
+    \code{corrosion\_112.jpg} & corrosion & 0.895 & 低风险 / P3 & 确认腐蚀面积和深度，检查防护层失效范围，建议进行防腐处理并归档跟踪 \\
+    \bottomrule
+  \end{tabularx}
+  \tablesource{项目 \code{risk\_engine.py}、\code{mock\_vlm\_analyzer.py} 与 API 运行报告整理}
+\end{table}
+
+从测试结果可以看出，多模态推理的价值不在于再次提高检测框精度，而在于补上检测系统缺失的“解释与处置”环节。检测模型只给出类别、位置和置信度；多模态推理继续把图像证据、检测证据和风险规则组织成故障摘要、可能原因、风险影响、复检要求和停机建议。对于毕业论文写作而言，这部分能够体现系统的工程完整性：模型指标只是第一层结果，真正的应用输出是可复核、可派单、可闭环的巡检决策。
+
+\chapter{总结}
+
+\section{工作总结}
+本文按照研电赛技术论文要求，围绕风机叶片智能巡检任务，设计并实现了 \method 多尺度形态感知检测与多模态推理系统。算法方面，系统引入 P2 小目标检测头、Shape-Aware Loss、困难样本重加权和 Blade-Slice 推理补偿；硬件方面，采用树莓派 3B+ 作为现场采集与转发节点，本地工作站承担 YOLO 推理和多模态分析；平台方面，系统实现了图片检测、批量检测、视频关键帧检测、报告生成、风险评估、多模态故障解释和维修工单生成。
+
+实验结果表明，当前 V4 稳定基线仍是总体指标最优的部署模型；\method 候选模型完成了完整方法链路，并在部分小目标测试中体现出竞争力，但尚未形成全面超越强基线的结论。Blade-Slice 能补偿少量小目标召回，但默认参数下误检增加，需要进一步门控。多模态推理模块则是本系统区别于普通检测 Demo 的关键，它把原图、结果图、检测框、置信度、风险规则和维修约束统一成结构化推理输入，输出故障摘要、风险等级、复检要求和维修单，使平台从“识别缺陷”扩展到“解释故障并辅助运维决策”。
+
+\section{不足与展望}
+后续工作可从五个方向继续推进：第一，针对 corrosion 和低对比度 crack 进行失败样本归因和数据清洗；第二，复核 \code{datasets/msf\_shape\_mask\_candidates} 中的伪 mask，探索 mask 级形态监督；第三，为 Blade-Slice 增加置信度门控、类别门控和场景触发条件；第四，将树莓派端采集程序进一步固化为可随任务编号自动上传的现场节点；第五，接入真实多模态大模型或知识库检索模块，并保留规则引擎的安全边界，使故障原因分析、复检建议和运维工单更加贴近实际巡检业务。
+
+\begin{thebibliography}{99}
+
+\bibitem{zhao2024rtdetr}
+Zhao Y., Lv W., Xu S., Wei J., Wang G., Dang Q., Liu Y., Chen J. DETRs Beat YOLOs on Real-time Object Detection. Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR), 2024.
+
+\bibitem{wang2024yolov9}
+Wang C.-Y., Yeh I.-H., Liao H.-Y. M. YOLOv9: Learning What You Want to Learn Using Programmable Gradient Information. Proceedings of the European Conference on Computer Vision (ECCV), 2024.
+
+\bibitem{wang2024yolov10}
+Wang A., Chen H., Liu L., Chen K., Lin Z., Han J., Ding G. YOLOv10: Real-Time End-to-End Object Detection. Advances in Neural Information Processing Systems (NeurIPS), 2024.
+
+\bibitem{chen2024internvl}
+Chen Z., Wang W., Cao Y., Liu Y., Gao Z., Cui E., et al. InternVL: Scaling up Vision Foundation Models and Aligning for Generic Visual-Linguistic Tasks. Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR), 2024.
+
+\bibitem{yue2024mmmu}
+Yue X., Ni Y., Zhang K., Zheng T., Liu R., Zhang G., et al. MMMU: A Massive Multi-discipline Multimodal Understanding and Reasoning Benchmark for Expert AGI. Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR), 2024.
+
+\bibitem{ravi2025sam2}
+Ravi N., Gabeur V., Hu Y.-T., Hu R., Ryali C., Ma T., et al. SAM 2: Segment Anything in Images and Videos. International Conference on Learning Representations (ICLR), 2025.
+
+\bibitem{jia2025tii}
+Jia X., Chen X. Unsupervised Wind Turbine Blade Damage Detection With Memory-Aided Denoising Reconstruction. IEEE Transactions on Industrial Informatics, 2025, 21(1): 762--770. DOI: 10.1109/TII.2024.3459612.
+
+\bibitem{zhang2025tia}
+Zhang Y., Wang L., Huang C., Luo X. Wind Turbine Blade Defect Detection Based on the Genetic Algorithm-Enhanced YOLOv5 Algorithm Using Synthetic Data. IEEE Transactions on Industry Applications, 2025, 61(1): 653--665. DOI: 10.1109/TIA.2024.3481190.
+
+\bibitem{li2025mssp}
+Li W., Zhao W., Du Y. Large-scale Wind Turbine Blade Operational Condition Monitoring Based on UAV and Improved YOLOv5 Deep Learning Model. Mechanical Systems and Signal Processing, 2025, 226: 112386. DOI: 10.1016/j.ymssp.2025.112386.
+
+\bibitem{ye2024semi}
+Ye X., Wang L., Huang C., Luo X. Wind Turbine Blade Defect Detection With a Semi-Supervised Deep Learning Framework. Engineering Applications of Artificial Intelligence, 2024, 136: 108908. DOI: 10.1016/j.engappai.2024.108908.
+
+\end{thebibliography}
+
+\end{document}

@@ -1,0 +1,10 @@
+path: E:/风机/wind-fault-detection-platform/datasets/wind_blade_defect_v02_improve
+train: images/train
+val: images/val
+test: images/test_clean
+
+names:
+  0: crack
+  1: hole
+  2: spalling
+  3: corrosion

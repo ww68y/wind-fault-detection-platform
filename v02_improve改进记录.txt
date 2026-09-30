@@ -1,0 +1,146 @@
+风机叶片缺陷检测 v02 改进记录
+生成日期：2026-06-04
+
+一、改进目标
+
+本轮不是重新更换 YOLO 架构，而是在 v02 hardcase 模型基础上继续改进。
+
+当前 v02 模型表现：
+
+1. 对 29 张困难漏检样本有明显提升；
+2. 漏检图片从旧模型 6 张降到 3 张；
+3. crack 裂纹和 spalling 剥落有所提升；
+4. corrosion 腐蚀类在正式验证集上退步；
+5. 因此暂不建议直接替换旧模型为正式默认模型。
+
+本轮 v02 改进重点：
+
+1. 补强 corrosion 腐蚀类；
+2. 强化 v02 仍漏检样本；
+3. 修复 v02 相比旧模型退步的样本；
+4. 保持原验证集整体指标不明显下降。
+
+
+二、v02 主要短板
+
+v02 仍漏检样本：
+
+- corrosion_166.jpg
+- corrosion_66.jpg
+- crack_68.jpg
+
+v02 相比旧模型退步样本：
+
+- corrosion_66.jpg
+
+类别短板：
+
+原始训练集 corrosion 样本明显少于其他类别。
+
+原训练集实例数：
+
+- crack：1001
+- hole：928
+- spalling：775
+- corrosion：277
+
+因此 v02 改进优先补 corrosion。
+
+
+三、改进数据集
+
+新数据集目录：
+
+datasets\wind_blade_defect_v02_improve
+
+构建脚本：
+
+scripts\prepare_v02_improve_dataset.py
+
+构建命令：
+
+.\.venv\Scripts\python.exe scripts\prepare_v02_improve_dataset.py --overwrite
+
+数据集构成：
+
+- 原训练集：2665 张；
+- 原验证集：571 张；
+- 原 v02 hardcase 漏检样本：29 张；
+- corrosion 训练样本过采样：163 张；
+- v02 重点失败样本重复强化：9 张；
+- test_clean：543 张。
+
+训练集新类别实例数：
+
+- crack：1023
+- hole：956
+- spalling：793
+- corrosion：584
+
+说明：
+
+本轮通过过采样把 corrosion 从 277 个训练实例提升到 584 个，以降低 v02 对腐蚀类退步的风险。
+
+
+四、训练计划
+
+建议从 v02 hardcase 模型继续微调，而不是从旧模型重新训练。
+
+起始模型：
+
+runs\detect\runs\wind_fault\hardcase\v02_hardcase_640_b4_40e_20260604_190625\weights\best.pt
+
+训练数据：
+
+datasets\wind_blade_defect_v02_improve\data.yaml
+
+建议训练参数：
+
+- epochs：30
+- imgsz：640
+- batch：4
+- device：0
+
+训练输出目录：
+
+runs\detect\runs\wind_fault\hardcase\v02_improve_corrosion_640_b4_30e_20260604_212514
+
+训练日志：
+
+runs\wind_fault\logs\v02_improve_corrosion_640_b4_30e_20260604_212514.out.log
+
+错误日志：
+
+runs\wind_fault\logs\v02_improve_corrosion_640_b4_30e_20260604_212514.err.log
+
+查看训练进度命令：
+
+Get-Content .\runs\wind_fault\logs\v02_improve_corrosion_640_b4_30e_20260604_212514.out.log -Tail 40 -Wait
+
+
+五、训练后验收标准
+
+v02 改进模型能否替换旧模型，需要满足：
+
+1. 原 val 集 mAP50-95 不低于旧模型或至少不明显下降；
+2. hard_cases 29 张困难样本漏检数不高于 v02；
+3. corrosion 类 mAP50-95 不低于 v02，最好接近或超过旧模型；
+4. v02 仍漏检的 3 张至少找回 1 到 2 张；
+5. 不产生明显新的误检或类别混淆。
+
+
+六、当前建议
+
+本轮已启动 v02_improve 训练。
+
+训练完成后进行三方对比：
+
+1. old_gpu_640_b4_80e；
+2. v02_hardcase；
+3. v02_improve。
+
+最终再决定是否：
+
+- 保留旧模型为正式默认模型；
+- 将 v02_improve 作为新默认模型；
+- 或继续训练 v03。

@@ -1,0 +1,38 @@
+v03 召回率优化闭环说明
+
+目标：
+- Recall >= 0.95
+- mAP50-95 >= 0.85
+- corrosion 不低于旧模型
+- hard_cases 漏检继续下降
+- 误检数量下降
+
+本轮新增流程：
+1. 使用 scripts/mine_detection_errors.py 从预测报告中挖掘漏检、低置信度、误检样本。
+2. 使用 hard_cases/negative_samples 收集已人工确认的正常/干扰负样本。
+3. 使用 scripts/prepare_v03_recall_dataset.py 构建 datasets/wind_blade_defect_v03_recall。
+4. 使用 scripts/run_v03_recall_experiments.ps1 统一跑 v02_640、v03_640、v03_832。
+
+构建 v03 数据集：
+python scripts/prepare_v03_recall_dataset.py --overwrite
+
+4GB 显卡建议实验：
+.\scripts\run_v03_recall_experiments.ps1 -BuildDataset -Experiment v03_640 -Epochs 80 -Device 0
+.\scripts\run_v03_recall_experiments.ps1 -Experiment v03_832 -Epochs 80 -Device 0
+
+如果显存不足：
+.\scripts\run_v03_recall_experiments.ps1 -Experiment v03_832 -Epochs 80 -Cpu
+
+错误样本挖掘示例：
+python scripts/mine_detection_errors.py `
+  --data datasets/wind_blade_defect_v03_recall/data.yaml `
+  --images datasets/wind_blade_defect_v03_recall/images/test_clean `
+  --labels datasets/wind_blade_defect_v03_recall/labels/test_clean `
+  --report runs/wind_fault/v03_640/reports/detection_report.json `
+  --output runs/wind_fault/v03_640/error_mining `
+  --copy-review-images
+
+注意：
+- false_positive_samples 里的图会被 prepare_v03_recall_dataset.py 当作负样本加入训练，所以放进去前必须人工确认确实不含缺陷。
+- corrosion 和小目标样本本轮会额外过采样，用于优先提高召回率。
+- v03_832 是小目标实验，速度会更慢，batch 默认 2。

@@ -1,0 +1,14 @@
+[project]
+name = "wind-fault-detection-platform"
+version = "0.1.0"
+description = "Wind turbine blade defect detection platform based on YOLO."
+requires-python = ">=3.10"
+readme = "README.md"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
